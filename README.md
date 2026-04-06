@@ -75,7 +75,7 @@ pip install -r requirements.txt
 
 Open `notebooks/setup.ipynb` directly in Colab for free GPU access:
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/YOUR_USERNAME/jailbreak-detection/blob/main/notebooks/setup.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Mrun9/jailbreak-detection/blob/main/notebooks/setup.ipynb)
 
 ---
 
