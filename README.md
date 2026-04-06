@@ -109,11 +109,16 @@ python src/detector.py
 
 ## Dataset
 
-**Source:** [TrustAIRLab/in-the-wild-jailbreak-prompts](https://huggingface.co/datasets/TrustAIRLab/in-the-wild-jailbreak-prompts)
+**Sources:** 
+1. https://huggingface.co/datasets/walledai/AdvBench/viewer/default/train?f%5Btarget%5D%5Bmin%5D=130&f%5Btarget%5D%5Bmax%5D=144&f%5Btarget%5D%5Btransform%5D=length
+2. https://huggingface.co/datasets/allenai/wildjailbreak/viewer/eval
+3. https://huggingface.co/datasets/TrustAIRLab/in-the-wild-jailbreak-prompts/viewer/jailbreak_2023_12_25
+4. https://huggingface.co/datasets/aurora-m/redteam/viewer/default/train?p=60
+5. https://huggingface.co/datasets/JailbreakBench/JBB-Behaviors/viewer/behaviors/benign?row=3
+6. https://huggingface.co/datasets/deepset/prompt-injections/viewer/default/train?f%5Blabel%5D%5Bmin%5D=1&f%5Blabel%5D%5Bimax%5D=1
 
 - **Type:** Text (English prompts)
 - **Labels:** Binary — `1` = jailbreak, `0` = benign
-- **Size:** ~3,800 labeled prompts (collected through December 2023)
 - **Access:** Loaded directly via HuggingFace `datasets` library — no manual
   download required.
 
