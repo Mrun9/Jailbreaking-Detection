@@ -1,0 +1,30 @@
+# macOS System Files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Python / Environment
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.env
+.venv
+pip-log.txt
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+
+# Large Data & Models (Crucial for ML)
+data/
+outputs/
+*.pkl
+*.h5
+*.pth
+*.onnx
+*.weights
+
+# IDEs
+.vscode/
+.idea/
