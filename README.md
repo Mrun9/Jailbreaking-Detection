@@ -124,5 +124,5 @@ ds = load_dataset("TrustAIRLab/in-the-wild-jailbreak-prompts", "regular_2023_12_
 ## Author
 
 **Mrunal Mohan Vibhute**
-Applied Deep Learning — KU Leuven
-Contact: [your email here]
+Applied Deep Learning 
+Contact: mvibhute@ufl.edu

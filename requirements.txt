@@ -1,0 +1,34 @@
+# Core ML
+torch>=2.0.0
+transformers>=4.40.0
+datasets>=2.18.0
+accelerate>=0.27.0
+
+# Semantic cache
+faiss-cpu>=1.7.4
+sentence-transformers>=2.7.0
+
+# Mutator strategies
+nltk>=3.8.1
+sentencepiece>=0.1.99
+
+# Classical ML baseline
+scikit-learn>=1.4.0
+
+# Data handling
+numpy>=1.26.0
+pandas>=2.2.0
+
+# Visualisation
+matplotlib>=3.8.0
+seaborn>=0.13.0
+
+# UI / deployment
+flask>=3.0.0
+
+# Notebook
+jupyter>=1.0.0
+ipywidgets>=8.1.0
+
+# Utilities
+tqdm>=4.66.0
