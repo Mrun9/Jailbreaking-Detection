@@ -4,6 +4,8 @@ A two-stage jailbreak prompt detection system combining a FAISS semantic cache
 with an adversarially trained transformer classifier, deployed as a browser
 extension that intercepts prompts before they reach any LLM interface.
 
+<img width="951" height="596" alt="image" src="https://github.com/user-attachments/assets/d445ba85-b1cb-47e2-ab9a-682bddbabd84" />
+
 ---
 
 ## Project Overview
