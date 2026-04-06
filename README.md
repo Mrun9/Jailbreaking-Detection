@@ -122,11 +122,6 @@ python src/detector.py
 - **Access:** Loaded directly via HuggingFace `datasets` library — no manual
   download required.
 
-```python
-from datasets import load_dataset
-ds = load_dataset("TrustAIRLab/in-the-wild-jailbreak-prompts", "regular_2023_12_25")
-```
-
 ---
 
 ## Author
