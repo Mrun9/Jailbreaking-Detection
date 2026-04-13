@@ -1,0 +1,591 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Times-Roman >>
+endobj
+2 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Times-Bold >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Times-Italic >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+6 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>
+endobj
+7 0 obj
+<< /Length 11940 >>
+stream
+BT /F5 19.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 -74.38 729.00 Tm (Preliminary Report: Adversarial Jailbreak Detection for Large Language Models) Tj ET
+BT /F4 9.00 Tf 0.424 0.459 0.490 rg 1 0 0 1 118.80 715.00 Tm (Mrunal Mohan Vibhute  |  Applied Deep Learning  |  Preliminary IEEE-style report) Tj ET
+q 0.80 w 0.910 0.925 0.941 RG 40.00 710.00 m 572.00 710.00 l S Q
+BT /F5 9.50 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 686.50 Tm (Abstract) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 673.00 Tm (This report documents the first working implementation stage of the jailbreak-detection project. The repository now contains) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 662.00 Tm (a consolidated prompt dataset, a trained DistilBERT classifier with saved checkpoints, a two-stage detector design with FAISS) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 651.00 Tm (or TF-IDF cache support, a mutator library for adversarial prompt generation, and a Flask interface prototype. The saved) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 640.00 Tm (validation artifacts report 95.76% accuracy, 95.26% precision, 94.70% recall, and 0.9498 F1 on a 2,404-example validation) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 629.00 Tm (split. The report summarizes the architecture, implementation details, interface behavior, early results, next steps, and) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 618.00 Tm (responsible-AI issues that remain open.) Tj ET
+BT /F5 9.50 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 604.50 Tm (Keywords) Tj ET
+BT /F3 8.00 Tf 0.424 0.459 0.490 rg 1 0 0 1 98.00 606.00 Tm (jailbreak detection, prompt injection, DistilBERT, semantic cache, adversarial prompts, Flask) Tj ET
+BT /F5 10.00 Tf 0.149 0.329 0.486 rg 1 0 0 1 40.00 574.00 Tm (I. Project Summary) Tj ET
+q 0.80 w 0.910 0.925 0.941 RG 40.00 571.00 m 297.00 571.00 l S Q
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 557.00 Tm (The project goal is to detect prompts that attempt) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 546.00 Tm (jailbreaks or prompt injections before they reach a) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 535.00 Tm (downstream large language model. The repository now goes) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 524.00 Tm (beyond a conceptual blueprint: it contains a consolidated) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 513.00 Tm (labeled dataset, a trained DistilBERT baseline, a two-stage) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 502.00 Tm (detector implementation, a mutation library for adversarial) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 491.00 Tm (prompt generation, and a simple web interface prototype.) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 476.00 Tm (Compared with Deliverable 1, the biggest step forward is) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 465.00 Tm (that the repo includes a first full classifier) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 454.00 Tm (implementation with saved checkpoints in) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 443.00 Tm (distilbert_jailbreak_detector/. The data pipeline is also) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 432.00 Tm (concrete rather than planned: prompts are aggregated into) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 421.00 Tm (results/collected_prompts.csv, cleaned, normalized to binary) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 410.00 Tm (labels, and split reproducibly into train and validation) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 399.00 Tm (partitions.) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 384.00 Tm (What still remains is mostly integration and robustness) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 373.00 Tm (work. The Flask app is not yet wired to the detector, the) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 362.00 Tm (semantic cache has not been benchmarked end to end, and the) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 351.00 Tm (adversarial trainer exists in code but does not yet have) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 340.00 Tm (saved full-run artifacts in the repo. The browser extension) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 329.00 Tm (deployment promised in the README is also not present yet,) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 318.00 Tm (so the current milestone is best described as a working) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 307.00 Tm (baseline plus partial infrastructure for the larger system.) Tj ET
+BT /F5 10.00 Tf 0.149 0.329 0.486 rg 1 0 0 1 315.00 574.00 Tm (II. System Architecture and Pipeline) Tj ET
+q 0.80 w 0.910 0.925 0.941 RG 315.00 571.00 m 572.00 571.00 l S Q
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 557.00 Tm (The updated architecture has an offline training lane and an) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 546.00 Tm (online inference lane. Offline, multiple jailbreak and) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 535.00 Tm (benign prompt sources are merged into a single CSV, labels) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 524.00 Tm (are normalized, and a stratified 90/10 split is created) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 513.00 Tm (before tokenization and fine-tuning. Online, the interface) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 502.00 Tm (accepts a prompt and sends it to the detector pipeline.) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 487.00 Tm (At runtime, the intended data flow is Data -> Preprocessing) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 476.00 Tm (-> Model -> Interface. Preprocessing at inference is light) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 465.00 Tm (because the cache and classifier handle tokenization) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 454.00 Tm (internally. Stage 1 uses a semantic cache implemented with) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 443.00 Tm (FAISS when available and falls back to TF-IDF when the) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 432.00 Tm (heavier dependencies are missing. Stage 2 uses a fine-tuned) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 421.00 Tm (transformer classifier. The interface then renders the) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 410.00 Tm (decision, confidence, and stage used for the decision.) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 395.00 Tm (The model-side components are modular. detector.py contains) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 384.00 Tm (the cache classes, neural classifier wrapper, and) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 373.00 Tm (TwoStageDetector orchestration. mutator.py contains six) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 362.00 Tm (mutation strategies that will feed future adversarial) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 351.00 Tm (training rounds. train_loop.py wraps those pieces into an) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 340.00 Tm (iterative hard-example mining loop, although the saved) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 329.00 Tm (evidence in this repo currently validates the classifier) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 318.00 Tm (path rather than the full loop.) Tj ET
+BT /F3 8.00 Tf 0.424 0.459 0.490 rg 1 0 0 1 40.00 280.00 Tm (Table I. Dataset summary extracted from repository CSV artifacts.) Tj ET
+q 0.80 w 0.667 0.698 0.729 RG 0.910 0.925 0.941 rg 40.00 253.00 532.00 19.00 re B Q
+BT /F5 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 45.00 260.00 Tm (Split) Tj ET
+q 0.60 w 0.667 0.698 0.729 RG 141.08 272.00 m 141.08 253.00 l S Q
+BT /F5 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 146.08 260.00 Tm (Rows) Tj ET
+q 0.60 w 0.667 0.698 0.729 RG 199.60 272.00 m 199.60 253.00 l S Q
+BT /F5 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 204.60 260.00 Tm (Jailbreak) Tj ET
+q 0.60 w 0.667 0.698 0.729 RG 268.76 272.00 m 268.76 253.00 l S Q
+BT /F5 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 273.76 260.00 Tm (Benign) Tj ET
+q 0.60 w 0.667 0.698 0.729 RG 337.92 272.00 m 337.92 253.00 l S Q
+BT /F5 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 342.92 260.00 Tm (Sources) Tj ET
+q 0.60 w 0.667 0.698 0.729 RG 401.76 272.00 m 401.76 253.00 l S Q
+BT /F5 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 406.76 260.00 Tm (Categories) Tj ET
+q 0.60 w 0.667 0.698 0.729 RG 465.60 272.00 m 465.60 253.00 l S Q
+BT /F5 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 470.60 260.00 Tm (Mean prompt length) Tj ET
+q 0.60 w 0.910 0.925 0.941 RG 1.000 1.000 1.000 rg 40.00 233.20 532.00 19.80 re B Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 45.00 241.00 Tm (Full CSV) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 141.08 253.00 m 141.08 233.20 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 146.08 241.00 Tm (24,037) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 199.60 253.00 m 199.60 233.20 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 204.60 241.00 Tm (10,190) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 268.76 253.00 m 268.76 233.20 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 273.76 241.00 Tm (13,847) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 337.92 253.00 m 337.92 233.20 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 342.92 241.00 Tm (8) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 401.76 253.00 m 401.76 233.20 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 406.76 241.00 Tm (24) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 465.60 253.00 m 465.60 233.20 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 470.60 241.00 Tm (214.04) Tj ET
+q 0.60 w 0.910 0.925 0.941 RG 0.985 0.988 0.992 rg 40.00 213.40 532.00 19.80 re B Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 45.00 221.20 Tm (Train split) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 141.08 233.20 m 141.08 213.40 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 146.08 221.20 Tm (21,633) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 199.60 233.20 m 199.60 213.40 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 204.60 221.20 Tm (9,171) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 268.76 233.20 m 268.76 213.40 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 273.76 221.20 Tm (12,462) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 337.92 233.20 m 337.92 213.40 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 342.92 221.20 Tm (8) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 401.76 233.20 m 401.76 213.40 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 406.76 221.20 Tm (24) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 465.60 233.20 m 465.60 213.40 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 470.60 221.20 Tm (212.70) Tj ET
+q 0.60 w 0.910 0.925 0.941 RG 1.000 1.000 1.000 rg 40.00 193.60 532.00 19.80 re B Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 45.00 201.40 Tm (Validation split) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 141.08 213.40 m 141.08 193.60 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 146.08 201.40 Tm (2,404) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 199.60 213.40 m 199.60 193.60 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 204.60 201.40 Tm (1,019) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 268.76 213.40 m 268.76 193.60 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 273.76 201.40 Tm (1,385) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 337.92 213.40 m 337.92 193.60 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 342.92 201.40 Tm (8) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 401.76 213.40 m 401.76 193.60 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 406.76 201.40 Tm (23) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 465.60 213.40 m 465.60 193.60 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 470.60 201.40 Tm (226.11) Tj ET
+q 0.60 w 0.910 0.925 0.941 RG 40.00 34.00 m 572.00 34.00 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 304.12 16.00 Tm (1) Tj ET
+endstream
+endobj
+8 0 obj
+<< /Length 16739 >>
+stream
+q 0.90 w 0.667 0.698 0.729 RG 1.000 1.000 1.000 rg 40.00 510.00 532.00 232.00 re B Q
+BT /F5 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 56.00 715.00 Tm (Offline training lane) Tj ET
+BT /F5 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 318.00 715.00 Tm (Online inference lane) Tj ET
+q 0.90 w 0.149 0.329 0.486 RG 0.867 0.914 0.961 rg 62.00 654.00 m 118.67 654.00 l 121.98 654.00 124.67 656.69 124.67 660.00 c 124.67 694.00 l 124.67 697.31 121.98 700.00 118.67 700.00 c 62.00 700.00 l 58.69 700.00 56.00 697.31 56.00 694.00 c 56.00 660.00 l 56.00 656.69 58.69 654.00 62.00 654.00 c b Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 62.13 678.80 Tm (Data sources \(8) Tj ET
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 73.41 669.00 Tm (datasets\)) Tj ET
+q 1.00 w 0.149 0.329 0.486 RG 124.67 677.00 m 132.67 677.00 l S Q
+q 1.00 w 0.149 0.329 0.486 RG 128.67 680.00 m 132.67 677.00 l S Q
+q 1.00 w 0.149 0.329 0.486 RG 128.67 674.00 m 132.67 677.00 l S Q
+q 0.90 w 0.149 0.329 0.486 RG 0.976 0.941 0.851 rg 142.67 654.00 m 199.33 654.00 l 202.65 654.00 205.33 656.69 205.33 660.00 c 205.33 694.00 l 205.33 697.31 202.65 700.00 199.33 700.00 c 142.67 700.00 l 139.35 700.00 136.67 697.31 136.67 694.00 c 136.67 660.00 l 136.67 656.69 139.35 654.00 142.67 654.00 c b Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 139.04 678.80 Tm (CSV consolidation) Tj ET
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 116.48 669.00 Tm (results/collected_prompts.csv) Tj ET
+q 1.00 w 0.149 0.329 0.486 RG 205.33 677.00 m 213.33 677.00 l S Q
+q 1.00 w 0.149 0.329 0.486 RG 209.33 680.00 m 213.33 677.00 l S Q
+q 1.00 w 0.149 0.329 0.486 RG 209.33 674.00 m 213.33 677.00 l S Q
+q 0.90 w 0.149 0.329 0.486 RG 0.882 0.953 0.902 rg 223.33 654.00 m 280.00 654.00 l 283.31 654.00 286.00 656.69 286.00 660.00 c 286.00 694.00 l 286.00 697.31 283.31 700.00 280.00 700.00 c 223.33 700.00 l 220.02 700.00 217.33 697.31 217.33 694.00 c 217.33 660.00 l 217.33 656.69 220.02 654.00 223.33 654.00 c b Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 221.59 683.70 Tm (Cleaning + label) Tj ET
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 223.47 673.90 Tm (normalization +) Tj ET
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 230.99 664.10 Tm (90/10 split) Tj ET
+q 1.00 w 0.153 0.459 0.286 RG 0.882 0.953 0.902 rg 90.00 578.00 m 252.00 578.00 l 255.31 578.00 258.00 580.69 258.00 584.00 c 258.00 624.00 l 258.00 627.31 255.31 630.00 252.00 630.00 c 90.00 630.00 l 86.69 630.00 84.00 627.31 84.00 624.00 c 84.00 584.00 l 84.00 580.69 86.69 578.00 90.00 578.00 c b Q
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 94.86 606.00 Tm (Tokenizer + DistilBERT fine-tuning 3) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 105.44 595.00 Tm (epochs, max length 256, seed 42) Tj ET
+q 1.00 w 0.153 0.459 0.286 RG 171.00 654.00 m 171.00 634.00 l S Q
+q 1.00 w 0.153 0.459 0.286 RG 168.00 638.00 m 171.00 634.00 l S Q
+q 1.00 w 0.153 0.459 0.286 RG 174.00 638.00 m 171.00 634.00 l S Q
+q 1.00 w 0.153 0.459 0.286 RG 0.867 0.914 0.961 rg 114.00 518.00 m 228.00 518.00 l 231.31 518.00 234.00 520.69 234.00 524.00 c 234.00 552.00 l 234.00 555.31 231.31 558.00 228.00 558.00 c 114.00 558.00 l 110.69 558.00 108.00 555.31 108.00 552.00 c 108.00 524.00 l 108.00 520.69 110.69 518.00 114.00 518.00 c b Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 140.92 539.80 Tm (Saved checkpoint) Tj ET
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 110.84 530.00 Tm (\(distilbert_jailbreak_detector/\)) Tj ET
+q 1.00 w 0.153 0.459 0.286 RG 171.00 578.00 m 171.00 562.00 l S Q
+q 1.00 w 0.153 0.459 0.286 RG 168.00 566.00 m 171.00 562.00 l S Q
+q 1.00 w 0.153 0.459 0.286 RG 174.00 566.00 m 171.00 562.00 l S Q
+q 0.90 w 0.659 0.208 0.208 RG 0.867 0.914 0.961 rg 324.00 654.00 m 383.33 654.00 l 386.65 654.00 389.33 656.69 389.33 660.00 c 389.33 694.00 l 389.33 697.31 386.65 700.00 383.33 700.00 c 324.00 700.00 l 320.69 700.00 318.00 697.31 318.00 694.00 c 318.00 660.00 l 318.00 656.69 320.69 654.00 324.00 654.00 c b Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 331.11 678.80 Tm (Prompt input) Tj ET
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 334.87 669.00 Tm (\(Flask UI\)) Tj ET
+q 1.00 w 0.659 0.208 0.208 RG 389.33 677.00 m 397.33 677.00 l S Q
+q 1.00 w 0.659 0.208 0.208 RG 393.33 680.00 m 397.33 677.00 l S Q
+q 1.00 w 0.659 0.208 0.208 RG 393.33 674.00 m 397.33 677.00 l S Q
+q 0.90 w 0.659 0.208 0.208 RG 0.976 0.941 0.851 rg 407.33 654.00 m 466.67 654.00 l 469.98 654.00 472.67 656.69 472.67 660.00 c 472.67 694.00 l 472.67 697.31 469.98 700.00 466.67 700.00 c 407.33 700.00 l 404.02 700.00 401.33 697.31 401.33 694.00 c 401.33 660.00 l 401.33 656.69 404.02 654.00 407.33 654.00 c b Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 412.56 683.70 Tm (Stage 1 cache) Tj ET
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 408.80 673.90 Tm (FAISS or TF-IDF) Tj ET
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 421.96 664.10 Tm (fallback) Tj ET
+q 1.00 w 0.659 0.208 0.208 RG 472.67 677.00 m 480.67 677.00 l S Q
+q 1.00 w 0.659 0.208 0.208 RG 476.67 680.00 m 480.67 677.00 l S Q
+q 1.00 w 0.659 0.208 0.208 RG 476.67 674.00 m 480.67 677.00 l S Q
+q 0.90 w 0.659 0.208 0.208 RG 0.882 0.953 0.902 rg 490.67 654.00 m 550.00 654.00 l 553.31 654.00 556.00 656.69 556.00 660.00 c 556.00 694.00 l 556.00 697.31 553.31 700.00 550.00 700.00 c 490.67 700.00 l 487.35 700.00 484.67 697.31 484.67 694.00 c 484.67 660.00 l 484.67 656.69 487.35 654.00 490.67 654.00 c b Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 495.89 683.70 Tm (Stage 2 model) Tj ET
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 501.53 673.90 Tm (DistilBERT) Tj ET
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 501.53 664.10 Tm (classifier) Tj ET
+q 1.00 w 0.659 0.208 0.208 RG 0.973 0.898 0.898 rg 342.00 578.00 m 532.00 578.00 l 535.31 578.00 538.00 580.69 538.00 584.00 c 538.00 624.00 l 538.00 627.31 535.31 630.00 532.00 630.00 c 342.00 630.00 l 338.69 630.00 336.00 627.31 336.00 624.00 c 336.00 584.00 l 336.00 580.69 338.69 578.00 342.00 578.00 c b Q
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 365.09 606.00 Tm (Decision JSON is_jailbreak, stage,) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 390.47 595.00 Tm (confidence, latency_ms) Tj ET
+q 1.00 w 0.659 0.208 0.208 RG 437.00 654.00 m 437.00 634.00 l S Q
+q 1.00 w 0.659 0.208 0.208 RG 434.00 638.00 m 437.00 634.00 l S Q
+q 1.00 w 0.659 0.208 0.208 RG 440.00 638.00 m 437.00 634.00 l S Q
+q 1.00 w 0.659 0.208 0.208 RG 0.976 0.941 0.851 rg 366.00 522.00 m 508.00 522.00 l 511.31 522.00 514.00 524.69 514.00 528.00 c 514.00 558.00 l 514.00 561.31 511.31 564.00 508.00 564.00 c 366.00 564.00 l 362.69 564.00 360.00 561.31 360.00 558.00 c 360.00 528.00 l 360.00 524.69 362.69 522.00 366.00 522.00 c b Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 378.72 544.80 Tm (Optional cache update for novel) Tj ET
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 418.20 535.00 Tm (jailbreaks) Tj ET
+q 1.00 w 0.659 0.208 0.208 RG 437.00 578.00 m 437.00 568.00 l S Q
+q 1.00 w 0.659 0.208 0.208 RG 434.00 572.00 m 437.00 568.00 l S Q
+q 1.00 w 0.659 0.208 0.208 RG 440.00 572.00 m 437.00 568.00 l S Q
+q 0.90 w 0.659 0.208 0.208 RG 437.00 522.00 m 437.00 632.00 l S Q
+BT /F3 8.00 Tf 0.424 0.459 0.490 rg 1 0 0 1 142.44 492.00 Tm (Fig. 1. Updated system architecture showing offline training and online detection flow.) Tj ET
+BT /F5 10.00 Tf 0.149 0.329 0.486 rg 1 0 0 1 40.00 464.00 Tm (III. Model Implementation Details) Tj ET
+q 0.80 w 0.910 0.925 0.941 RG 40.00 461.00 m 297.00 461.00 l S Q
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 447.00 Tm (The implementation centers on the Hugging Face and PyTorch) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 436.00 Tm (ecosystem. notebooks/model) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 425.00 Tm (training/distilbert_detector_train.py uses torch,) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 414.00 Tm (transformers, datasets, sklearn, numpy, and pandas to train) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 403.00 Tm (a binary prompt classifier. The runtime detector in) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 392.00 Tm (src/detector.py adds optional FAISS support for a semantic) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 381.00 Tm (cache and a scikit-learn TF-IDF fallback, while) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 370.00 Tm (src/mutator.py uses NLTK plus optional transformer pipelines) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 359.00 Tm (for mutation strategies. The interface layer in ui/app.py is) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 348.00 Tm (implemented with Flask.) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 333.00 Tm (The saved training run uses) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 322.00 Tm (distilbert/distilbert-base-uncased as the base encoder. The) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 311.00 Tm (training script fixes MAX_LENGTH=256, TRAIN_FRACTION=0.90,) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 300.00 Tm (RANDOM_SEED=42, NUM_EPOCHS=3, LEARNING_RATE=2e-5,) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 289.00 Tm (TRAIN_BATCH_SIZE=16, EVAL_BATCH_SIZE=32, and) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 278.00 Tm (WEIGHT_DECAY=0.01. The trainer evaluates and saves) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 267.00 Tm (checkpoints once per epoch, keeps the best model according) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 256.00 Tm (to validation F1, and enables fp16 only when CUDA is) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 245.00 Tm (available.) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 230.00 Tm (The dataset artifact in results/collected_prompts.csv) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 219.00 Tm (contains 24,037 prompts from 8 named sources and 24 category) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 208.00 Tm (labels. After stratified splitting, the saved train split) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 197.00 Tm (contains 21,633 examples and the validation split contains) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 186.00 Tm (2,404 examples. The class balance is moderately skewed) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 175.00 Tm (toward benign prompts, but still close enough for binary) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 164.00 Tm (metrics such as F1 and recall to remain informative.) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 465.00 Tm (For reproducibility, the repo already contains several) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 454.00 Tm (useful hooks. seed_everything\(\) fixes Python, NumPy, torch,) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 443.00 Tm (and Hugging Face seeds. normalize_label\(\) standardizes) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 432.00 Tm (multiple label spellings into 0 or 1. load_dataframe\(\)) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 421.00 Tm (enforces required columns and drops malformed rows.) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 410.00 Tm (build_datasets\(\) creates the deterministic split.) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 399.00 Tm (compute_metrics\(\) returns accuracy, precision, recall, and) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 388.00 Tm (F1. On the inference side, resolve_model_path\(\), cache) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 377.00 Tm (save/load helpers, and TwoStageDetector.evaluate\(\) make the) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 366.00 Tm (detector portable across local and remote checkpoints.) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 351.00 Tm (The adversarial components are partially implemented but not) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 340.00 Tm (yet demonstrated with stored outputs. TrainingConfig in) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 329.00 Tm (src/train_loop.py centralizes hyperparameters for) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 318.00 Tm (multi-round training, and AdversarialTrainer can generate) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 307.00 Tm (variants, find fooling examples, expand the dataset, and) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 296.00 Tm (update the cache after each round. The mutator already) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 285.00 Tm (exposes six strategies: WordNet swaps, contextual BERT) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 274.00 Tm (swaps, T5 paraphrase, backtranslation, role-play wrapping,) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 263.00 Tm (and structural perturbation. In practice, the default) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 252.00 Tm (trainer configuration uses the lighter strategies first:) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 241.00 Tm (wordnet, roleplay, and structural.) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 226.00 Tm (One unresolved detail is hardware reporting. The code is) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 215.00 Tm (GPU-aware and the README recommends Google Colab with GPU) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 204.00 Tm (acceleration, but the saved artifacts do not record the) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 193.00 Tm (exact accelerator that produced the checkpoints. Future) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 182.00 Tm (experimental runs should log the hardware type, memory) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 171.00 Tm (limits, runtime duration, and dependency versions explicitly) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 160.00 Tm (so that the performance claims in later reports are easier) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 149.00 Tm (to audit.) Tj ET
+BT /F5 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 157.00 Tm (Implementation notes) Tj ET
+q 0.80 w 0.667 0.698 0.729 RG 0.910 0.925 0.941 rg 315.00 133.00 257.00 19.00 re B Q
+BT /F5 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 320.00 140.00 Tm (Setting) Tj ET
+q 0.60 w 0.667 0.698 0.729 RG 430.65 152.00 m 430.65 133.00 l S Q
+BT /F5 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 435.65 140.00 Tm (Saved value) Tj ET
+q 0.60 w 0.910 0.925 0.941 RG 1.000 1.000 1.000 rg 315.00 113.20 257.00 19.80 re B Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 320.00 121.00 Tm (Base model) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 430.65 133.00 m 430.65 113.20 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 435.65 121.00 Tm (distilbert/distilbert-base-uncased) Tj ET
+q 0.60 w 0.910 0.925 0.941 RG 0.985 0.988 0.992 rg 315.00 93.40 257.00 19.80 re B Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 320.00 101.20 Tm (Epochs) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 430.65 113.20 m 430.65 93.40 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 435.65 101.20 Tm (3) Tj ET
+q 0.60 w 0.910 0.925 0.941 RG 1.000 1.000 1.000 rg 315.00 73.60 257.00 19.80 re B Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 320.00 81.40 Tm (Learning rate) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 430.65 93.40 m 430.65 73.60 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 435.65 81.40 Tm (2e-5) Tj ET
+q 0.60 w 0.910 0.925 0.941 RG 0.985 0.988 0.992 rg 315.00 53.80 257.00 19.80 re B Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 320.00 61.60 Tm (Batch sizes) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 430.65 73.60 m 430.65 53.80 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 435.65 61.60 Tm (16 train / 32 eval) Tj ET
+q 0.60 w 0.910 0.925 0.941 RG 1.000 1.000 1.000 rg 315.00 34.00 257.00 19.80 re B Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 320.00 41.80 Tm (Weight decay) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 430.65 53.80 m 430.65 34.00 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 435.65 41.80 Tm (0.01) Tj ET
+q 0.60 w 0.910 0.925 0.941 RG 0.985 0.988 0.992 rg 315.00 14.20 257.00 19.80 re B Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 320.00 22.00 Tm (Validation metric) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 430.65 34.00 m 430.65 14.20 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 435.65 22.00 Tm (F1 score) Tj ET
+q 0.60 w 0.910 0.925 0.941 RG 1.000 1.000 1.000 rg 315.00 -5.60 257.00 19.80 re B Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 320.00 2.20 Tm (Split strategy) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 430.65 14.20 m 430.65 -5.60 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 435.65 2.20 Tm (90/10 stratified by label) Tj ET
+q 0.60 w 0.910 0.925 0.941 RG 40.00 34.00 m 572.00 34.00 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 304.12 16.00 Tm (2) Tj ET
+endstream
+endobj
+9 0 obj
+<< /Length 16456 >>
+stream
+BT /F5 10.00 Tf 0.149 0.329 0.486 rg 1 0 0 1 40.00 734.00 Tm (IV. Interface Prototype) Tj ET
+q 0.80 w 0.910 0.925 0.941 RG 40.00 731.00 m 297.00 731.00 l S Q
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 717.00 Tm (The current interface is a single-page Flask prototype with) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 706.00 Tm (an inline HTML template. The user provides a free-form) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 695.00 Tm (prompt in a textarea. A button sends a JSON POST request to) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 684.00 Tm (/detect, and the response area renders a green benign or red) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 673.00 Tm (jailbreak card with the stage and confidence values returned) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 662.00 Tm (by the backend.) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 647.00 Tm (This is useful as an interaction skeleton because it already) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 636.00 Tm (defines the user-facing request and response contract.) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 625.00 Tm (However, the endpoint currently returns a placeholder) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 614.00 Tm (payload rather than the output of TwoStageDetector.detect\(\).) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 603.00 Tm (That means the interface demonstrates the intended workflow) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 592.00 Tm (and the output schema, but it is not yet a live safety) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 581.00 Tm (filter.) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 566.00 Tm (From a usability perspective, the current page is) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 555.00 Tm (intentionally simple and easy to understand. The main) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 544.00 Tm (limitations are backend wiring, lack of prompt history or) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 533.00 Tm (audit logging, no browser-extension interception, and no) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 522.00 Tm (explanation UI for matched cached prompts or likely trigger) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 511.00 Tm (patterns.) Tj ET
+q 0.80 w 0.667 0.698 0.729 RG 1.000 1.000 1.000 rg 50.00 239.00 m 287.00 239.00 l 292.52 239.00 297.00 243.48 297.00 249.00 c 297.00 493.00 l 297.00 498.52 292.52 503.00 287.00 503.00 c 50.00 503.00 l 44.48 503.00 40.00 498.52 40.00 493.00 c 40.00 249.00 l 40.00 243.48 44.48 239.00 50.00 239.00 c b Q
+q 0.910 0.925 0.941 rg 50.00 479.00 m 287.00 479.00 l 292.52 479.00 297.00 483.48 297.00 489.00 c 297.00 493.00 l 297.00 498.52 292.52 503.00 287.00 503.00 c 50.00 503.00 l 44.48 503.00 40.00 498.52 40.00 493.00 c 40.00 489.00 l 40.00 483.48 44.48 479.00 50.00 479.00 c f Q
+q 0.659 0.208 0.208 rg 58.00 488.00 m 58.00 488.00 l 60.21 488.00 62.00 489.79 62.00 492.00 c 62.00 492.00 l 62.00 494.21 60.21 496.00 58.00 496.00 c 58.00 496.00 l 55.79 496.00 54.00 494.21 54.00 492.00 c 54.00 492.00 l 54.00 489.79 55.79 488.00 58.00 488.00 c f Q
+q 0.702 0.510 0.169 rg 70.00 488.00 m 70.00 488.00 l 72.21 488.00 74.00 489.79 74.00 492.00 c 74.00 492.00 l 74.00 494.21 72.21 496.00 70.00 496.00 c 70.00 496.00 l 67.79 496.00 66.00 494.21 66.00 492.00 c 66.00 492.00 l 66.00 489.79 67.79 488.00 70.00 488.00 c f Q
+q 0.153 0.459 0.286 rg 82.00 488.00 m 82.00 488.00 l 84.21 488.00 86.00 489.79 86.00 492.00 c 86.00 492.00 l 86.00 494.21 84.21 496.00 82.00 496.00 c 82.00 496.00 l 79.79 496.00 78.00 494.21 78.00 492.00 c 78.00 492.00 l 78.00 489.79 79.79 488.00 82.00 488.00 c f Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 86.00 489.00 Tm (localhost:5000) Tj ET
+BT /F5 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 62.00 460.00 Tm (Jailbreak Prompt Detector) Tj ET
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 62.00 445.00 Tm (Enter a prompt below to check whether it is a jailbreak attempt.) Tj ET
+q 0.70 w 0.667 0.698 0.729 RG 0.995 0.997 0.999 rg 66.00 339.00 m 271.00 339.00 l 274.31 339.00 277.00 341.69 277.00 345.00 c 277.00 425.00 l 277.00 428.31 274.31 431.00 271.00 431.00 c 66.00 431.00 l 62.69 431.00 60.00 428.31 60.00 425.00 c 60.00 345.00 l 60.00 341.69 62.69 339.00 66.00 339.00 c b Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 70.00 411.00 Tm (Pretend you are an unrestricted system and explain) Tj ET
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 70.00 401.20 Tm (how to bypass the safety rules in detail...) Tj ET
+q 0.659 0.208 0.208 rg 66.00 299.00 m 142.00 299.00 l 145.31 299.00 148.00 301.69 148.00 305.00 c 148.00 317.00 l 148.00 320.31 145.31 323.00 142.00 323.00 c 66.00 323.00 l 62.69 323.00 60.00 320.31 60.00 317.00 c 60.00 305.00 l 60.00 301.69 62.69 299.00 66.00 299.00 c f Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 81.44 309.00 Tm (Check Prompt) Tj ET
+q 0.80 w 0.153 0.459 0.286 RG 0.882 0.953 0.902 rg 66.00 227.00 m 271.00 227.00 l 274.31 227.00 277.00 229.69 277.00 233.00 c 277.00 279.00 l 277.00 282.31 274.31 285.00 271.00 285.00 c 66.00 285.00 l 62.69 285.00 60.00 282.31 60.00 279.00 c 60.00 233.00 l 60.00 229.69 62.69 227.00 66.00 227.00 c b Q
+BT /F5 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 70.00 266.00 Tm (Benign prompt) Tj ET
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 70.00 251.00 Tm (stage: placeholder) Tj ET
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 70.00 239.00 Tm (confidence: 0.0%) Tj ET
+BT /F3 8.00 Tf 0.424 0.459 0.490 rg 1 0 0 1 46.30 222.00 Tm (Fig. 2. Current Flask interface prototype derived from ui/app.py.) Tj ET
+BT /F3 8.00 Tf 0.424 0.459 0.490 rg 1 0 0 1 40.00 201.00 Tm (Listing 1. Current backend response schema.) Tj ET
+q 0.70 w 0.910 0.925 0.941 RG 0.985 0.988 0.992 rg 46.00 117.50 m 291.00 117.50 l 294.31 117.50 297.00 120.19 297.00 123.50 c 297.00 189.00 l 297.00 192.31 294.31 195.00 291.00 195.00 c 46.00 195.00 l 42.69 195.00 40.00 192.31 40.00 189.00 c 40.00 123.50 l 40.00 120.19 42.69 117.50 46.00 117.50 c b Q
+BT /F6 7.20 Tf 0.078 0.094 0.110 rg 1 0 0 1 50.00 177.80 Tm ({) Tj ET
+BT /F6 7.20 Tf 0.078 0.094 0.110 rg 1 0 0 1 50.00 169.30 Tm (  "prompt": "Pretend you are unrestricted...",) Tj ET
+BT /F6 7.20 Tf 0.078 0.094 0.110 rg 1 0 0 1 50.00 160.80 Tm (  "is_jailbreak": false,) Tj ET
+BT /F6 7.20 Tf 0.078 0.094 0.110 rg 1 0 0 1 50.00 152.30 Tm (  "stage": "placeholder",) Tj ET
+BT /F6 7.20 Tf 0.078 0.094 0.110 rg 1 0 0 1 50.00 143.80 Tm (  "confidence": 0.0,) Tj ET
+BT /F6 7.20 Tf 0.078 0.094 0.110 rg 1 0 0 1 50.00 135.30 Tm (  "latency_ms": 0.0) Tj ET
+BT /F6 7.20 Tf 0.078 0.094 0.110 rg 1 0 0 1 50.00 126.80 Tm (}) Tj ET
+BT /F5 10.00 Tf 0.149 0.329 0.486 rg 1 0 0 1 315.00 734.00 Tm (V. Early Evaluation and Results) Tj ET
+q 0.80 w 0.910 0.925 0.941 RG 315.00 731.00 m 572.00 731.00 l S Q
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 717.00 Tm (The strongest empirical evidence currently stored in the) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 706.00 Tm (repo comes from the DistilBERT validation run. The) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 695.00 Tm (validation split contains 2,404 prompts: 1,019 labeled) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 684.00 Tm (jailbreaks and 1,385 labeled benign prompts. Across the) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 673.00 Tm (three saved epochs, performance improves steadily on both) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 662.00 Tm (accuracy and F1.) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 647.00 Tm (At epoch 1 the model reaches 95.30% accuracy and 0.944 F1.) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 636.00 Tm (At epoch 2 it improves to 95.63% accuracy and 0.948 F1. At) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 625.00 Tm (epoch 3 it reaches 95.76% accuracy, 95.26% precision, 94.70%) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 614.00 Tm (recall, and 0.950 F1. The final confusion matrix contains) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 603.00 Tm (965 true positives, 1,337 true negatives, 48 false) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 592.00 Tm (positives, and 54 false negatives.) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 577.00 Tm (These numbers suggest that the classifier path is) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 566.00 Tm (functioning well as a first baseline. Precision is slightly) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 555.00 Tm (higher than recall, so the model is mildly conservative) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 544.00 Tm (while still catching most positive prompts. Training loss) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 533.00 Tm (logs also trend down substantially, from about 0.43 early in) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 522.00 Tm (training to around 0.07 near the final steps.) Tj ET
+BT /F3 8.00 Tf 0.424 0.459 0.490 rg 1 0 0 1 315.00 506.00 Tm (Table II. Validation metrics from saved trainer_state.json.) Tj ET
+q 0.80 w 0.667 0.698 0.729 RG 0.910 0.925 0.941 rg 315.00 481.00 257.00 19.00 re B Q
+BT /F5 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 320.00 488.00 Tm (Epoch) Tj ET
+q 0.60 w 0.667 0.698 0.729 RG 345.84 500.00 m 345.84 481.00 l S Q
+BT /F5 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 350.84 488.00 Tm (Accuracy) Tj ET
+q 0.60 w 0.667 0.698 0.729 RG 389.53 500.00 m 389.53 481.00 l S Q
+BT /F5 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 394.53 488.00 Tm (Precision) Tj ET
+q 0.60 w 0.667 0.698 0.729 RG 435.79 500.00 m 435.79 481.00 l S Q
+BT /F5 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 440.79 488.00 Tm (Recall) Tj ET
+q 0.60 w 0.667 0.698 0.729 RG 479.48 500.00 m 479.48 481.00 l S Q
+BT /F5 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 484.48 488.00 Tm (F1) Tj ET
+q 0.60 w 0.667 0.698 0.729 RG 518.03 500.00 m 518.03 481.00 l S Q
+BT /F5 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 523.03 488.00 Tm (Eval loss) Tj ET
+q 0.60 w 0.910 0.925 0.941 RG 1.000 1.000 1.000 rg 315.00 461.20 257.00 19.80 re B Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 320.00 469.00 Tm (1) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 345.84 481.00 m 345.84 461.20 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 350.84 469.00 Tm (0.9530) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 389.53 481.00 m 389.53 461.20 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 394.53 469.00 Tm (0.9530) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 435.79 481.00 m 435.79 461.20 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 440.79 469.00 Tm (0.9352) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 479.48 481.00 m 479.48 461.20 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 484.48 469.00 Tm (0.9440) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 518.03 481.00 m 518.03 461.20 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 523.03 469.00 Tm (0.1362) Tj ET
+q 0.60 w 0.910 0.925 0.941 RG 0.985 0.988 0.992 rg 315.00 441.40 257.00 19.80 re B Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 320.00 449.20 Tm (2) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 345.84 461.20 m 345.84 441.40 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 350.84 449.20 Tm (0.9563) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 389.53 461.20 m 389.53 441.40 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 394.53 449.20 Tm (0.9516) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 435.79 461.20 m 435.79 441.40 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 440.79 449.20 Tm (0.9450) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 479.48 461.20 m 479.48 441.40 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 484.48 449.20 Tm (0.9483) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 518.03 461.20 m 518.03 441.40 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 523.03 449.20 Tm (0.1237) Tj ET
+q 0.60 w 0.910 0.925 0.941 RG 1.000 1.000 1.000 rg 315.00 421.60 257.00 19.80 re B Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 320.00 429.40 Tm (3) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 345.84 441.40 m 345.84 421.60 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 350.84 429.40 Tm (0.9576) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 389.53 441.40 m 389.53 421.60 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 394.53 429.40 Tm (0.9526) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 435.79 441.40 m 435.79 421.60 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 440.79 429.40 Tm (0.9470) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 479.48 441.40 m 479.48 421.60 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 484.48 429.40 Tm (0.9498) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 518.03 441.40 m 518.03 421.60 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 523.03 429.40 Tm (0.1568) Tj ET
+q 0.80 w 0.667 0.698 0.729 RG 1.000 1.000 1.000 rg 40.00 68.00 532.00 156.00 re B Q
+q 0.50 w 0.910 0.925 0.941 RG 86.00 92.00 m 546.00 92.00 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 59.20 88.00 Tm (0.940) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 86.00 119.50 m 546.00 119.50 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 59.20 115.50 Tm (0.945) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 86.00 147.00 m 546.00 147.00 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 59.20 143.00 Tm (0.950) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 86.00 174.50 m 546.00 174.50 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 59.20 170.50 Tm (0.955) Tj ET
+q 0.50 w 0.910 0.925 0.941 RG 86.00 202.00 m 546.00 202.00 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 59.20 198.00 Tm (0.960) Tj ET
+q 0.80 w 0.078 0.094 0.110 RG 86.00 202.00 m 86.00 92.00 l S Q
+q 0.80 w 0.078 0.094 0.110 RG 86.00 92.00 m 546.00 92.00 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 72.84 74.00 Tm (Epoch 1) Tj ET
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 302.84 74.00 Tm (Epoch 2) Tj ET
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 532.84 74.00 Tm (Epoch 3) Tj ET
+q 1.50 w 0.149 0.329 0.486 RG 86.00 163.47 m 316.00 181.78 l S Q
+q 1.50 w 0.149 0.329 0.486 RG 316.00 181.78 m 546.00 188.64 l S Q
+q 1.00 w 0.149 0.329 0.486 RG 0.149 0.329 0.486 rg 86.00 160.47 m 86.00 160.47 l 87.66 160.47 89.00 161.82 89.00 163.47 c 89.00 163.47 l 89.00 165.13 87.66 166.47 86.00 166.47 c 86.00 166.47 l 84.34 166.47 83.00 165.13 83.00 163.47 c 83.00 163.47 l 83.00 161.82 84.34 160.47 86.00 160.47 c b Q
+q 1.00 w 0.149 0.329 0.486 RG 0.149 0.329 0.486 rg 316.00 178.78 m 316.00 178.78 l 317.66 178.78 319.00 180.12 319.00 181.78 c 319.00 181.78 l 319.00 183.43 317.66 184.78 316.00 184.78 c 316.00 184.78 l 314.34 184.78 313.00 183.43 313.00 181.78 c 313.00 181.78 l 313.00 180.12 314.34 178.78 316.00 178.78 c b Q
+q 1.00 w 0.149 0.329 0.486 RG 0.149 0.329 0.486 rg 546.00 185.64 m 546.00 185.64 l 547.66 185.64 549.00 186.98 549.00 188.64 c 549.00 188.64 l 549.00 190.30 547.66 191.64 546.00 191.64 c 546.00 191.64 l 544.34 191.64 543.00 190.30 543.00 188.64 c 543.00 188.64 l 543.00 186.98 544.34 185.64 546.00 185.64 c b Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 500.00 196.00 Tm (Accuracy) Tj ET
+q 1.50 w 0.149 0.329 0.486 RG 478.00 199.00 m 494.00 199.00 l S Q
+q 1.50 w 0.153 0.459 0.286 RG 86.00 114.17 m 316.00 137.66 l S Q
+q 1.50 w 0.153 0.459 0.286 RG 316.00 137.66 m 546.00 145.92 l S Q
+q 1.00 w 0.153 0.459 0.286 RG 0.153 0.459 0.286 rg 86.00 111.17 m 86.00 111.17 l 87.66 111.17 89.00 112.52 89.00 114.17 c 89.00 114.17 l 89.00 115.83 87.66 117.17 86.00 117.17 c 86.00 117.17 l 84.34 117.17 83.00 115.83 83.00 114.17 c 83.00 114.17 l 83.00 112.52 84.34 111.17 86.00 111.17 c b Q
+q 1.00 w 0.153 0.459 0.286 RG 0.153 0.459 0.286 rg 316.00 134.66 m 316.00 134.66 l 317.66 134.66 319.00 136.00 319.00 137.66 c 319.00 137.66 l 319.00 139.31 317.66 140.66 316.00 140.66 c 316.00 140.66 l 314.34 140.66 313.00 139.31 313.00 137.66 c 313.00 137.66 l 313.00 136.00 314.34 134.66 316.00 134.66 c b Q
+q 1.00 w 0.153 0.459 0.286 RG 0.153 0.459 0.286 rg 546.00 142.92 m 546.00 142.92 l 547.66 142.92 549.00 144.26 549.00 145.92 c 549.00 145.92 l 549.00 147.57 547.66 148.92 546.00 148.92 c 546.00 148.92 l 544.34 148.92 543.00 147.57 543.00 145.92 c 543.00 145.92 l 543.00 144.26 544.34 142.92 546.00 142.92 c b Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 500.00 184.00 Tm (F1 score) Tj ET
+q 1.50 w 0.153 0.459 0.286 RG 478.00 187.00 m 494.00 187.00 l S Q
+BT /F3 8.00 Tf 0.424 0.459 0.490 rg 1 0 0 1 151.84 52.00 Tm (Fig. 3. Validation accuracy and F1 improve across the three saved training epochs.) Tj ET
+q 0.60 w 0.910 0.925 0.941 RG 40.00 34.00 m 572.00 34.00 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 304.12 16.00 Tm (3) Tj ET
+endstream
+endobj
+10 0 obj
+<< /Length 9648 >>
+stream
+BT /F5 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 132.94 721.00 Tm (Predicted) Tj ET
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.72 612.00 Tm (Actual) Tj ET
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 93.08 708.00 Tm (Jailbreak) Tj ET
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 186.72 708.00 Tm (Benign) Tj ET
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 26.16 662.00 Tm (Jailbreak) Tj ET
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 37.44 574.00 Tm (Benign) Tj ET
+q 0.90 w 0.153 0.459 0.286 RG 0.882 0.953 0.902 rg 66.00 616.00 88.00 88.00 re B Q
+BT /F5 11.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 92.84 655.50 Tm (TP 965) Tj ET
+q 0.90 w 0.659 0.208 0.208 RG 0.973 0.898 0.898 rg 154.00 616.00 88.00 88.00 re B Q
+BT /F5 11.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 183.70 655.50 Tm (FN 54) Tj ET
+q 0.90 w 0.659 0.208 0.208 RG 0.973 0.898 0.898 rg 66.00 528.00 88.00 88.00 re B Q
+BT /F5 11.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 95.70 567.50 Tm (FP 48) Tj ET
+q 0.90 w 0.153 0.459 0.286 RG 0.882 0.953 0.902 rg 154.00 528.00 88.00 88.00 re B Q
+BT /F5 11.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 177.98 567.50 Tm (TN 1337) Tj ET
+BT /F3 8.00 Tf 0.424 0.459 0.490 rg 1 0 0 1 54.36 508.00 Tm (Fig. 4. Final validation confusion matrix at epoch 3.) Tj ET
+BT /F5 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 477.00 Tm (Interpretation) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 463.00 Tm (There are also reasons to be cautious. The evaluation is an) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 452.00 Tm (internal random validation split rather than a fully) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 441.00 Tm (external holdout or live red-team benchmark. In addition,) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 430.00 Tm (validation loss improves from 0.136 at epoch 1 to 0.124 at) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 419.00 Tm (epoch 2, then rises to 0.157 at epoch 3 even though F1 still) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 408.00 Tm (increases. That pattern suggests the classification boundary) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 397.00 Tm (is improving while probability calibration may be drifting,) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 386.00 Tm (which motivates threshold tuning and calibration checks) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 375.00 Tm (before deployment.) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 360.00 Tm (Another important nuance is that the saved results reflect) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 349.00 Tm (the transformer classifier only. The repo contains code for) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 338.00 Tm (a two-stage cache plus classifier system, but there is no) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 327.00 Tm (stored latency or cache-hit study yet. As a result, the) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 316.00 Tm (early results support the claim that the classifier baseline) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 305.00 Tm (is viable, while the broader real-time defense story remains) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 294.00 Tm (partially implemented rather than fully validated.) Tj ET
+BT /F5 10.00 Tf 0.149 0.329 0.486 rg 1 0 0 1 315.00 734.00 Tm (VI. Challenges and Next Steps) Tj ET
+q 0.80 w 0.910 0.925 0.941 RG 315.00 731.00 m 572.00 731.00 l S Q
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 717.00 Tm (Several technical challenges appeared during implementation.) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 706.00 Tm (First, the workflow depends on a relatively large Python) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 695.00 Tm (stack, and the current local environment used for this) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 684.00 Tm (report does not have torch, transformers, scikit-learn,) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 673.00 Tm (pandas, Flask, or FAISS installed. That means the saved) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 662.00 Tm (artifacts are reproducible in principle, but only after the) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 651.00 Tm (requirements are installed correctly.) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 636.00 Tm (Second, some project components are not fully aligned yet.) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 625.00 Tm (The UI is still placeholder-only, the adversarial training) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 614.00 Tm (loop has no saved history file in the repo, and the browser) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 603.00 Tm (extension described in the README has not been added. There) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 592.00 Tm (are also a few consistency issues worth fixing: the training) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 581.00 Tm (script still has a DeBERTa-era file header, trainer metadata) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 570.00 Tm (points to a deberta_jailbreak_detector checkpoint path, and) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 559.00 Tm (inference truncation in detector.py uses 512 tokens while) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 548.00 Tm (the saved training script uses 256.) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 533.00 Tm (Before Deliverable 3, the highest-value refinements are to) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 522.00 Tm (wire the UI directly to TwoStageDetector, run full) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 511.00 Tm (adversarial rounds and save the resulting history, benchmark) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 500.00 Tm (the semantic cache against the classifier-only path, add) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 489.00 Tm (per-source and per-category breakdowns, tune thresholds on a) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 478.00 Tm (dedicated development set, and package the interface into a) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 467.00 Tm (deployment form that more closely matches the original) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 456.00 Tm (browser-extension concept.) Tj ET
+BT /F5 10.00 Tf 0.149 0.329 0.486 rg 1 0 0 1 40.00 262.00 Tm (VII. Responsible AI Reflection) Tj ET
+q 0.80 w 0.910 0.925 0.941 RG 40.00 259.00 m 572.00 259.00 l S Q
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 245.00 Tm (The implementation already surfaces several responsible-AI) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 234.00 Tm (concerns. A false negative can allow a harmful jailbreak) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 223.00 Tm (prompt through, but a false positive can also block benign) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 212.00 Tm (educational, research, or security-testing prompts. That) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 201.00 Tm (tradeoff means threshold selection and human override) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 190.00 Tm (mechanisms matter just as much as raw F1.) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 175.00 Tm (Privacy is another concern because a prompt safety system) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 164.00 Tm (can end up storing exactly the sensitive text it is meant to) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 153.00 Tm (protect. The cache design currently keeps raw prompt strings) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 142.00 Tm (so it can report matched_prompt values. Before wider) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 131.00 Tm (deployment, the system should minimize stored text, add) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 120.00 Tm (retention controls, make telemetry opt-in, and consider) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 40.00 109.00 Tm (redacting or hashing prompt content where possible.) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 245.00 Tm (Fairness and coverage are also not solved yet. The) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 234.00 Tm (aggregated dataset has uneven source representation and many) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 223.00 Tm (rows with category=MISSING, so there is no evidence yet that) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 212.00 Tm (performance is consistent across domains, writing styles, or) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 201.00 Tm (benign edge cases. The refinement phase should therefore) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 190.00 Tm (include subgroup analysis, manual review of false positives) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 179.00 Tm (and false negatives, and careful handling of harmful) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 168.00 Tm (training data so that development itself does not create) Tj ET
+BT /F1 9.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 315.00 157.00 Tm (unnecessary exposure.) Tj ET
+BT /F3 8.00 Tf 0.424 0.459 0.490 rg 1 0 0 1 54.08 50.00 Tm (This preliminary implementation is strongest as a reproducible classifier baseline and still incomplete as a full deployment pipeline.) Tj ET
+q 0.60 w 0.910 0.925 0.941 RG 40.00 34.00 m 572.00 34.00 l S Q
+BT /F1 8.00 Tf 0.078 0.094 0.110 rg 1 0 0 1 304.12 16.00 Tm (4) Tj ET
+endstream
+endobj
+11 0 obj
+<< /Type /Page /Parent 15 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R /F4 4 0 R /F5 5 0 R /F6 6 0 R >> >> /Contents 7 0 R >>
+endobj
+12 0 obj
+<< /Type /Page /Parent 15 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R /F4 4 0 R /F5 5 0 R /F6 6 0 R >> >> /Contents 8 0 R >>
+endobj
+13 0 obj
+<< /Type /Page /Parent 15 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R /F4 4 0 R /F5 5 0 R /F6 6 0 R >> >> /Contents 9 0 R >>
+endobj
+14 0 obj
+<< /Type /Page /Parent 15 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R /F4 4 0 R /F5 5 0 R /F6 6 0 R >> >> /Contents 10 0 R >>
+endobj
+15 0 obj
+<< /Type /Pages /Kids [11 0 R 12 0 R 13 0 R 14 0 R] /Count 4 >>
+endobj
+16 0 obj
+<< /Type /Catalog /Pages 15 0 R >>
+endobj
+xref
+0 17
+0000000000 65535 f 
+0000000015 00000 n 
+0000000087 00000 n 
+0000000158 00000 n 
+0000000231 00000 n 
+0000000301 00000 n 
+0000000376 00000 n 
+0000000444 00000 n 
+0000012437 00000 n 
+0000029229 00000 n 
+0000045738 00000 n 
+0000055439 00000 n 
+0000055617 00000 n 
+0000055795 00000 n 
+0000055973 00000 n 
+0000056152 00000 n 
+0000056232 00000 n 
+trailer
+<< /Size 17 /Root 16 0 R >>
+startxref
+56283
+%%EOF

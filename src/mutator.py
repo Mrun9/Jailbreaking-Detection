@@ -18,6 +18,7 @@ Usage:
 
 import random
 import re
+from functools import lru_cache
 from typing import Optional
 
 # ── optional imports (graceful degradation if not installed) ──────────────────
@@ -91,7 +92,7 @@ if NLTK_OK and not NLTK_SENT_TOKENIZER_READY:
     print("[mutator] NLTK sentence tokenizer data missing — structural strategy will use simple period splitting.")
 
 try:
-    from transformers import pipeline, AutoTokenizer, AutoModelForMaskedLM
+    from transformers import AutoTokenizer, AutoModelForMaskedLM, AutoModelForSeq2SeqLM
     TRANSFORMERS_OK = True
 except ImportError:
     TRANSFORMERS_OK = False
@@ -102,6 +103,41 @@ try:
     TORCH_OK = True
 except ImportError:
     TORCH_OK = False
+
+
+def _torch_device():
+    """Pick the best available torch device for local inference."""
+    if not TORCH_OK:
+        return None
+    if torch.cuda.is_available():
+        return torch.device("cuda")
+    if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+        return torch.device("mps")
+    return torch.device("cpu")
+
+
+@lru_cache(maxsize=8)
+def _load_masked_lm(model_name: str):
+    """Cache masked language models so we do not reload them for every prompt."""
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForMaskedLM.from_pretrained(model_name)
+    device = _torch_device()
+    if device is not None:
+        model = model.to(device)
+    model.eval()
+    return tokenizer, model, device
+
+
+@lru_cache(maxsize=8)
+def _load_seq2seq_model(model_name: str):
+    """Cache seq2seq models used for paraphrasing and translation."""
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+    device = _torch_device()
+    if device is not None:
+        model = model.to(device)
+    model.eval()
+    return tokenizer, model, device
 
 
 # ── Role-play wrapper templates ───────────────────────────────────────────────
@@ -201,9 +237,7 @@ def bert_contextual_swap(
     if not TRANSFORMERS_OK:
         return text
 
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModelForMaskedLM.from_pretrained(model_name)
-    model.eval()
+    tokenizer, model, device = _load_masked_lm(model_name)
 
     tokens = text.split()
     result = tokens.copy()
@@ -219,6 +253,8 @@ def bert_contextual_swap(
         masked_text = ' '.join(masked)
 
         inputs = tokenizer(masked_text, return_tensors="pt")
+        if device is not None:
+            inputs = {k: v.to(device) for k, v in inputs.items()}
         mask_idx = (inputs.input_ids == tokenizer.mask_token_id).nonzero(as_tuple=True)[1]
 
         if len(mask_idx) == 0:
@@ -253,25 +289,36 @@ def t5_paraphrase(
     Most powerful mutation — requires GPU for reasonable speed.
     Model: humarin/chatgpt_paraphraser_on_T5_base (HuggingFace, free)
     """
-    if not TRANSFORMERS_OK:
+    if not TRANSFORMERS_OK or not TORCH_OK:
         return text
 
-    paraphraser = pipeline(
-        "text2text-generation",
-        model=model_name,
-        device=0 if (TORCH_OK and torch.cuda.is_available()) else -1
-    )
+    tokenizer, model, device = _load_seq2seq_model(model_name)
 
     input_text = f"paraphrase: {text} </s>"
-    outputs = paraphraser(
+    inputs = tokenizer(
         input_text,
+        return_tensors="pt",
+        truncation=True,
         max_length=256,
-        num_beams=num_beams,
-        num_return_sequences=num_return_sequences,
-        early_stopping=True
     )
+    if device is not None:
+        inputs = {k: v.to(device) for k, v in inputs.items()}
 
-    return outputs[0]['generated_text']
+    with torch.no_grad():
+        output_ids = model.generate(
+            **inputs,
+            max_length=256,
+            num_beams=num_beams,
+            num_return_sequences=num_return_sequences,
+            early_stopping=True
+        )
+
+    decoded = tokenizer.batch_decode(
+        output_ids,
+        skip_special_tokens=True,
+        clean_up_tokenization_spaces=True,
+    )
+    return decoded[0] if decoded else text
 
 
 def backtranslate(
@@ -287,20 +334,49 @@ def backtranslate(
 
     pivot_lang options: 'fr', 'de', 'es', 'zh', 'ru'
     """
-    if not TRANSFORMERS_OK:
+    if not TRANSFORMERS_OK or not TORCH_OK:
         return text
 
     # Default Helsinki-NLP model names
     fwd = en_to_pivot_model or f"Helsinki-NLP/opus-mt-en-{pivot_lang}"
     bwd = pivot_to_en_model or f"Helsinki-NLP/opus-mt-{pivot_lang}-en"
 
-    device = 0 if (TORCH_OK and torch.cuda.is_available()) else -1
+    fwd_tokenizer, fwd_model, fwd_device = _load_seq2seq_model(fwd)
+    bwd_tokenizer, bwd_model, bwd_device = _load_seq2seq_model(bwd)
 
-    fwd_pipe = pipeline("translation", model=fwd, device=device)
-    bwd_pipe = pipeline("translation", model=bwd, device=device)
+    fwd_inputs = fwd_tokenizer(
+        text,
+        return_tensors="pt",
+        truncation=True,
+        max_length=512,
+    )
+    if fwd_device is not None:
+        fwd_inputs = {k: v.to(fwd_device) for k, v in fwd_inputs.items()}
 
-    translated = fwd_pipe(text, max_length=512)[0]['translation_text']
-    back = bwd_pipe(translated, max_length=512)[0]['translation_text']
+    with torch.no_grad():
+        translated_ids = fwd_model.generate(**fwd_inputs, max_length=512)
+    translated = fwd_tokenizer.batch_decode(
+        translated_ids,
+        skip_special_tokens=True,
+        clean_up_tokenization_spaces=True,
+    )[0]
+
+    bwd_inputs = bwd_tokenizer(
+        translated,
+        return_tensors="pt",
+        truncation=True,
+        max_length=512,
+    )
+    if bwd_device is not None:
+        bwd_inputs = {k: v.to(bwd_device) for k, v in bwd_inputs.items()}
+
+    with torch.no_grad():
+        back_ids = bwd_model.generate(**bwd_inputs, max_length=512)
+    back = bwd_tokenizer.batch_decode(
+        back_ids,
+        skip_special_tokens=True,
+        clean_up_tokenization_spaces=True,
+    )[0]
 
     return back
 

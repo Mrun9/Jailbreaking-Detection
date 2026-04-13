@@ -35,11 +35,11 @@ from tqdm import tqdm
 
 try:
     import torch
+    from torch.optim import AdamW
     from torch.utils.data import Dataset, DataLoader
     from transformers import (
         AutoTokenizer,
         AutoModelForSequenceClassification,
-        AdamW,
         get_linear_schedule_with_warmup,
     )
     TORCH_OK = True
@@ -48,7 +48,7 @@ except ImportError:
     print("[train_loop] torch/transformers not found.")
 
 from mutator import JailbreakMutator
-from detector import TwoStageDetector, JailbreakCache
+from detector import TwoStageDetector, NeuralClassifier, make_cache, find_project_model_path
 
 
 # ── Config dataclass ──────────────────────────────────────────────────────────
@@ -60,11 +60,12 @@ class TrainingConfig:
     Change these without touching the training code.
     """
     # Model
-    model_name: str = "microsoft/deberta-v3-small"
+    model_name: str = "distilbert_jailbreak_detector"
     # Options:
     #   "answerdotai/ModernBERT-base"
     #   "microsoft/deberta-v3-small"
     #   "distilbert-base-uncased"
+    #   "distilbert_jailbreak_detector" (local fine-tuned checkpoint)
 
     # Training
     num_epochs: int = 3
@@ -78,6 +79,7 @@ class TrainingConfig:
     num_rounds: int = 4           # how many adversarial rounds to run
     variants_per_seed: int = 5    # mutations per seed prompt per round
     min_fool_confidence: float = 0.4  # model confidence below this = "fooled"
+    detector_model_threshold: float = 0.5
 
     # Mutator strategies to use
     mutator_strategies: list = field(
@@ -96,6 +98,10 @@ class TrainingConfig:
     seed: int = 42
     val_split: float = 0.15
     test_split: float = 0.10
+    verbose: bool = True
+    show_progress_bars: bool = True
+    sample_preview_count: int = 3
+    dry_run: bool = False
 
 
 # ── Dataset wrapper ───────────────────────────────────────────────────────────
@@ -128,12 +134,23 @@ class PromptDataset(Dataset):
 
 # ── Core training function ────────────────────────────────────────────────────
 
-def train_one_epoch(model, dataloader, optimizer, scheduler, device) -> float:
+def train_one_epoch(
+    model,
+    dataloader,
+    optimizer,
+    scheduler,
+    device,
+    show_progress: bool = False,
+    progress_desc: Optional[str] = None,
+) -> float:
     """Run one pass over the training data. Returns average loss."""
     model.train()
     total_loss = 0.0
+    iterator = dataloader
+    if show_progress:
+        iterator = tqdm(dataloader, desc=progress_desc or "Training", leave=False)
 
-    for batch in dataloader:
+    for batch in iterator:
         input_ids      = batch["input_ids"].to(device)
         attention_mask = batch["attention_mask"].to(device)
         labels         = batch["labels"].to(device)
@@ -153,6 +170,8 @@ def train_one_epoch(model, dataloader, optimizer, scheduler, device) -> float:
         optimizer.step()
         scheduler.step()
         total_loss += loss.item()
+        if show_progress:
+            iterator.set_postfix(loss=f"{loss.item():.4f}")
 
     return total_loss / len(dataloader)
 
@@ -217,7 +236,7 @@ class AdversarialTrainer:
     def __init__(self, config: TrainingConfig):
         self.config = config
         self.device = "cuda" if (TORCH_OK and torch.cuda.is_available()) else "cpu"
-        print(f"[trainer] Device: {self.device}")
+        self._notify(f"Device: {self.device}")
 
         random.seed(config.seed)
         np.random.seed(config.seed)
@@ -230,22 +249,94 @@ class AdversarialTrainer:
             combine=False
         )
 
+        self.current_model_source = self._resolve_model_source(config.model_name)
+
         # Model + tokenizer (loaded once, retrained each round)
-        print(f"[trainer] Loading tokenizer: {config.model_name}")
-        self.tokenizer = AutoTokenizer.from_pretrained(config.model_name)
+        self._notify(f"Loading tokenizer: {self.current_model_source}")
+        self.tokenizer = AutoTokenizer.from_pretrained(self.current_model_source)
 
         # Training history (for plotting / report)
         self.history = []
 
         Path(config.output_dir).mkdir(parents=True, exist_ok=True)
 
+    def _resolve_model_source(self, configured_model_name: str) -> str:
+        """
+        Choose the starting checkpoint for adversarial fine-tuning.
+
+        If a local fine-tuned model exists in the repo, prefer that over a base
+        model so the loop continues from the already-trained detector.
+        """
+        configured_path = Path(configured_model_name).expanduser()
+        if configured_path.exists():
+            resolved = str(configured_path)
+            self._notify(f"Starting from local checkpoint: {resolved}")
+            return resolved
+
+        discovered = find_project_model_path()
+        if configured_model_name == "distilbert_jailbreak_detector" and discovered:
+            self._notify(f"Starting from discovered checkpoint: {discovered}")
+            return discovered
+
+        self._notify(f"Starting from model source: {configured_model_name}")
+        return configured_model_name
+
+    def _notify(self, message: str, component: str = "trainer") -> None:
+        """Lightweight terminal notifications with timestamps."""
+        if not self.config.verbose:
+            return
+        timestamp = time.strftime("%H:%M:%S")
+        print(f"[{timestamp}] [{component}] {message}")
+
+    def _preview_text(self, text: str, limit: int = 120) -> str:
+        """Collapse whitespace and trim long prompts for readable logs."""
+        compact = " ".join(text.split())
+        if len(compact) <= limit:
+            return compact
+        return compact[: limit - 3] + "..."
+
+    def _print_record_samples(self, title: str, records: list) -> None:
+        """Print a few example prompt records without flooding the terminal."""
+        if not records:
+            return
+
+        preview_count = min(self.config.sample_preview_count, len(records))
+        self._notify(f"{title} ({preview_count} of {len(records)} shown):")
+        for idx, record in enumerate(records[:preview_count], start=1):
+            self._notify(
+                f"{idx}. stage={record['stage']} confidence={record['confidence']:.3f} "
+                f"seed='{self._preview_text(record['seed'], 70)}' "
+                f"variant='{self._preview_text(record['text'])}'",
+                component="sample",
+            )
+
+    def _build_round_detector(self, model, cache) -> TwoStageDetector:
+        """Wrap the current in-memory model in the project detector pipeline."""
+        neural = NeuralClassifier.from_preloaded(
+            model=model,
+            tokenizer=self.tokenizer,
+            device=self.device,
+            confidence_threshold=self.config.detector_model_threshold,
+        )
+        return TwoStageDetector(
+            cache=cache,
+            neural=neural,
+            auto_update_cache=False,
+        )
+
     def _build_model(self):
-        """Fresh model for each round (or load checkpoint if continuing)."""
+        """Load the current checkpoint source for the next adversarial round."""
         model = AutoModelForSequenceClassification.from_pretrained(
-            self.config.model_name,
+            self.current_model_source,
             num_labels=2
         )
         return model.to(self.device)
+
+    def _load_frozen_model_for_dry_run(self):
+        """Load the current model without fine-tuning it."""
+        model = self._build_model()
+        model.eval()
+        return model
 
     def _build_dataloaders(self, texts, labels):
         """Split data and return train/val dataloaders."""
@@ -294,20 +385,32 @@ class AdversarialTrainer:
             num_training_steps=total_steps
         )
 
-        print(f"  [classifier] Training on {len(texts)} examples "
-              f"({self.config.num_epochs} epochs)...")
+        self._notify(
+            f"Training classifier on {len(texts)} examples "
+            f"for {self.config.num_epochs} epoch(s).",
+            component="classifier",
+        )
         best_f1 = 0.0
         best_state = None
 
         for epoch in range(self.config.num_epochs):
             train_loss = train_one_epoch(
-                model, train_loader, optimizer, scheduler, self.device
+                model,
+                train_loader,
+                optimizer,
+                scheduler,
+                self.device,
+                show_progress=self.config.show_progress_bars,
+                progress_desc=f"Epoch {epoch + 1}/{self.config.num_epochs}",
             )
             val_metrics = evaluate(model, val_loader, self.device)
-            print(f"    Epoch {epoch+1}/{self.config.num_epochs} — "
-                  f"train_loss={train_loss:.4f} | "
-                  f"val_f1={val_metrics['f1']:.4f} | "
-                  f"val_acc={val_metrics['accuracy']:.4f}")
+            self._notify(
+                f"Epoch {epoch + 1}/{self.config.num_epochs}: "
+                f"train_loss={train_loss:.4f} | "
+                f"val_f1={val_metrics['f1']:.4f} | "
+                f"val_acc={val_metrics['accuracy']:.4f}",
+                component="classifier",
+            )
 
             # Keep best checkpoint by F1
             if val_metrics["f1"] > best_f1:
@@ -321,42 +424,75 @@ class AdversarialTrainer:
         return model, best_f1
 
     @torch.no_grad()
-    def _find_fooling_variants(self, model, seed_prompts: list) -> list:
+    def _find_fooling_variants(self, detector: TwoStageDetector, seed_prompts: list) -> tuple[list, dict]:
         """
         Generate mutations of seed prompts and find which ones
         fool the current classifier (low jailbreak confidence).
 
-        Returns list of (variant_text, confidence) tuples where
-        confidence < min_fool_confidence.
+        Returns:
+          1. list of hard-example records
+          2. detector/mutator summary stats for the round
         """
-        model.eval()
         fooling = []
+        total_generated = 0
+        escaped_variants = 0
+        stage_counts = {"cache": 0, "model": 0, "no_model": 0, "other": 0}
 
-        print(f"  [mutator] Generating variants for {len(seed_prompts)} seeds...")
-        for seed in tqdm(seed_prompts, desc="  Mutating", leave=False):
+        self._notify(
+            f"Generating variants for {len(seed_prompts)} seed jailbreak prompts.",
+            component="mutator",
+        )
+
+        iterator = seed_prompts
+        if self.config.show_progress_bars:
+            iterator = tqdm(seed_prompts, desc="Mutate+detect", leave=False)
+
+        for seed in iterator:
             variants = self.mutator.mutate(seed, n=self.config.variants_per_seed)
+            total_generated += len(variants)
 
             if not variants:
                 continue
 
-            # Batch score variants
-            inputs = self.tokenizer(
-                variants,
-                truncation=True,
-                padding=True,
-                max_length=self.config.max_length,
-                return_tensors="pt"
-            ).to(self.device)
+            results = detector.detect_batch(variants)
 
-            outputs = model(**inputs)
-            probs = torch.softmax(outputs.logits, dim=-1)
-            jb_probs = probs[:, 1].cpu().tolist()  # class 1 = jailbreak
+            for variant, result in zip(variants, results):
+                stage = result.get("stage") or "other"
+                stage_counts[stage if stage in stage_counts else "other"] += 1
 
-            for variant, conf in zip(variants, jb_probs):
-                if conf < self.config.min_fool_confidence:
-                    fooling.append((variant, conf))
+                if not result["is_jailbreak"]:
+                    escaped_variants += 1
 
-        return fooling
+                if (
+                    not result["is_jailbreak"]
+                    and result["confidence"] < self.config.min_fool_confidence
+                ):
+                    fooling.append({
+                        "text": variant,
+                        "confidence": result["confidence"],
+                        "stage": result["stage"],
+                        "seed": seed,
+                        "similarity": result["similarity"],
+                    })
+
+            if self.config.show_progress_bars:
+                iterator.set_postfix(
+                    generated=total_generated,
+                    escaped=escaped_variants,
+                    hard=len(fooling),
+                )
+
+        summary = {
+            "seeds_processed": len(seed_prompts),
+            "variants_generated": total_generated,
+            "escaped_variants": escaped_variants,
+            "hard_examples": len(fooling),
+            "cache_hits": stage_counts["cache"],
+            "model_scans": stage_counts["model"],
+            "unknown_scans": stage_counts["no_model"] + stage_counts["other"],
+            "detector_stats": detector.get_stats(),
+        }
+        return fooling, summary
 
     def run(
         self,
@@ -383,7 +519,7 @@ class AdversarialTrainer:
         all_labels = [1] * len(jailbreak_prompts) + [0] * len(benign_prompts)
 
         # Seed the cache with known jailbreaks
-        cache = JailbreakCache(similarity_threshold=self.config.cache_threshold)
+        cache = make_cache(similarity_threshold=self.config.cache_threshold)
         cache.build(jailbreak_prompts)
 
         seed_prompts = jailbreak_prompts.copy()  # mutator draws from these
@@ -392,6 +528,8 @@ class AdversarialTrainer:
         print(f"ADVERSARIAL TRAINING — {self.config.num_rounds} rounds")
         print(f"Initial dataset: {len(jailbreak_prompts)} jailbreaks, "
               f"{len(benign_prompts)} benign")
+        if self.config.dry_run:
+            print("Mode: DRY RUN (no weight updates, no checkpoint/cache/history writes)")
         print("=" * 60)
 
         model = None
@@ -404,30 +542,84 @@ class AdversarialTrainer:
 
             # ── Step 1: Train classifier ──────────────────────────────────
             t0 = time.time()
-            model, best_f1 = self._train_classifier(all_texts, all_labels)
+            if self.config.dry_run:
+                self._notify(
+                    f"Round {round_num} dry run: loading the current checkpoint without training.",
+                    component="round",
+                )
+                model = self._load_frozen_model_for_dry_run()
+                best_f1 = None
+            else:
+                self._notify(
+                    f"Round {round_num} started: training on {len(all_texts)} total examples.",
+                    component="round",
+                )
+                model, best_f1 = self._train_classifier(all_texts, all_labels)
             train_time = time.time() - t0
 
             # ── Step 2: Save checkpoint ───────────────────────────────────
-            ckpt_path = f"{self.config.output_dir}/round_{round_num}"
-            model.save_pretrained(ckpt_path)
-            self.tokenizer.save_pretrained(ckpt_path)
-            print(f"  [checkpoint] Saved to {ckpt_path}")
+            if self.config.dry_run:
+                ckpt_path = None
+                self._notify(
+                    "Dry run enabled: skipping checkpoint save for this round.",
+                    component="checkpoint",
+                )
+            else:
+                ckpt_path = f"{self.config.output_dir}/round_{round_num}"
+                model.save_pretrained(ckpt_path)
+                self.tokenizer.save_pretrained(ckpt_path)
+                self._notify(f"Saved checkpoint to {ckpt_path}", component="checkpoint")
+                self.current_model_source = ckpt_path
+                self._notify(
+                    f"Next round will continue from: {self.current_model_source}",
+                    component="checkpoint",
+                )
 
-            # ── Step 3: Find fooling variants ─────────────────────────────
-            fooling = self._find_fooling_variants(model, seed_prompts)
-            fooling_texts = [f for f, _ in fooling]
+            # ── Step 3: Score mutations with the real detector ────────────
+            detector = self._build_round_detector(model, cache)
+            self._notify(
+                "Live detector ready: cache + freshly trained classifier are now "
+                "scoring mutated prompts.",
+                component="detector",
+            )
+            fooling, detector_summary = self._find_fooling_variants(detector, seed_prompts)
+            fooling_texts = [record["text"] for record in fooling]
 
-            print(f"  [mutator] Found {len(fooling_texts)} fooling variants "
-                  f"out of {len(seed_prompts) * self.config.variants_per_seed} generated")
+            self._notify(
+                f"Detector summary: generated={detector_summary['variants_generated']} | "
+                f"cache_hits={detector_summary['cache_hits']} | "
+                f"model_scans={detector_summary['model_scans']} | "
+                f"escaped={detector_summary['escaped_variants']} | "
+                f"hard_examples={detector_summary['hard_examples']}",
+                component="detector",
+            )
+            self._print_record_samples("Hard example samples", fooling)
 
             # ── Step 4: Add hard examples to dataset + cache ──────────────
             if fooling_texts:
-                all_texts.extend(fooling_texts)
-                all_labels.extend([1] * len(fooling_texts))
-                cache.add(fooling_texts)
-                # Add to seed pool so future rounds mutate them too
-                seed_prompts.extend(
-                    random.sample(fooling_texts, min(20, len(fooling_texts)))
+                if self.config.dry_run:
+                    self._notify(
+                        f"Dry run enabled: would promote {len(fooling_texts)} hard examples, "
+                        "but leaving dataset and cache unchanged.",
+                        component="round",
+                    )
+                else:
+                    all_texts.extend(fooling_texts)
+                    all_labels.extend([1] * len(fooling_texts))
+                    cache.add(fooling_texts)
+                    # Add to seed pool so future rounds mutate them too
+                    seed_prompts.extend(
+                        random.sample(fooling_texts, min(20, len(fooling_texts)))
+                    )
+                    self._notify(
+                        f"Promoted {len(fooling_texts)} hard examples into the training set. "
+                        f"Seed pool is now {len(seed_prompts)} prompts.",
+                        component="round",
+                    )
+            else:
+                self._notify(
+                    "No hard examples found this round. Training set stays unchanged.",
+                    component="round",
                 )
 
             # ── Step 5: Optional test set evaluation ─────────────────────
@@ -443,9 +635,12 @@ class AdversarialTrainer:
                     shuffle=False
                 )
                 test_metrics = evaluate(model, test_loader, self.device)
-                print(f"  [test] F1={test_metrics['f1']:.4f} | "
-                      f"Precision={test_metrics['precision']:.4f} | "
-                      f"Recall={test_metrics['recall']:.4f}")
+                self._notify(
+                    f"Test metrics: F1={test_metrics['f1']:.4f} | "
+                    f"Precision={test_metrics['precision']:.4f} | "
+                    f"Recall={test_metrics['recall']:.4f}",
+                    component="test",
+                )
 
             # ── Record history ────────────────────────────────────────────
             round_record = {
@@ -454,23 +649,34 @@ class AdversarialTrainer:
                 "jailbreak_count": int(sum(all_labels)),
                 "benign_count": int(len(all_labels) - sum(all_labels)),
                 "fooling_variants_found": len(fooling_texts),
+                "detector_summary": detector_summary,
                 "best_val_f1": best_f1,
                 "train_time_sec": round(train_time, 1),
                 "test_metrics": test_metrics,
+                "dry_run": self.config.dry_run,
             }
             self.history.append(round_record)
+            self._notify(
+                f"Round {round_num} complete in {train_time:.1f}s. "
+                f"Best val F1: {best_f1:.4f}" if best_f1 is not None
+                else f"Round {round_num} complete in {train_time:.1f}s. No training performed.",
+                component="round",
+            )
 
         # ── Final save ────────────────────────────────────────────────────
         print("\n" + "=" * 60)
         print("TRAINING COMPLETE")
 
-        # Save cache
-        cache.save(self.config.cache_save_path)
+        if self.config.dry_run:
+            print("[trainer] Dry run finished — no cache or history files were written.")
+        else:
+            # Save cache
+            cache.save(self.config.cache_save_path)
 
-        # Save history
-        with open(self.config.history_save_path, 'w') as f:
-            json.dump(self.history, f, indent=2)
-        print(f"[trainer] History saved to {self.config.history_save_path}")
+            # Save history
+            with open(self.config.history_save_path, 'w') as f:
+                json.dump(self.history, f, indent=2)
+            print(f"[trainer] History saved to {self.config.history_save_path}")
 
         # Print summary table
         print("\n--- Round Summary ---")
@@ -478,9 +684,10 @@ class AdversarialTrainer:
         print("-" * 50)
         for r in self.history:
             test_f1 = r['test_metrics']['f1'] if r['test_metrics'] else "n/a"
+            best_val_f1 = f"{r['best_val_f1']:.4f}" if r['best_val_f1'] is not None else "n/a"
             print(f"{r['round']:<8} {r['dataset_size']:<10} "
                   f"{r['fooling_variants_found']:<10} "
-                  f"{r['best_val_f1']:<10.4f} {test_f1}")
+                  f"{best_val_f1:<10} {test_f1}")
 
         return model, cache
 
@@ -536,12 +743,13 @@ if __name__ == "__main__":
 
     # Configure
     config = TrainingConfig(
-        model_name="distilbert-base-uncased",  # fast for demo; swap to DeBERTa for real
+        model_name="distilbert_jailbreak_detector",
         num_rounds=3,
         num_epochs=2,
         batch_size=8,
         variants_per_seed=3,
         output_dir="checkpoints",
+        dry_run=True,
     )
 
     # Run

@@ -65,13 +65,61 @@ source venv/bin/activate        # Linux / macOS
 venv\Scripts\activate           # Windows
 ```
 
-### 3. Install dependencies
+### 3. Or create a Conda environment
+
+```bash
+conda create -n jailbreak-detector python=3.10 -y
+conda activate jailbreak-detector
+cd "/Users/mrunal/Documents/Projects/ADL/Jailbreak Detection"
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+Verify the core packages:
+
+```bash
+python -c "import torch, transformers, numpy, sklearn, flask, nltk, huggingface_hub; print('ok')"
+```
+
+If `faiss-cpu` fails to install through `pip`, install it with Conda first:
+
+```bash
+conda install -c conda-forge faiss-cpu -y
+pip install -r requirements.txt --no-deps
+```
+
+### Apple Silicon Notes
+
+If you are on a Mac with Apple Silicon (`arm64`, including M1/M2/M3/M4), do not
+install the PyPI `faiss-cpu` wheel on top of a Conda FAISS install. That can
+create a version mismatch between the Python wrapper and the compiled FAISS
+library.
+
+Use this order instead:
+
+```bash
+conda create -n jailbreak-detector python=3.10 -y
+conda activate jailbreak-detector
+cd "/Users/mrunal/Documents/Projects/ADL/Jailbreak Detection"
+python -m pip install --upgrade pip
+conda install -c conda-forge faiss=1.10.0 libfaiss=1.10.0 -y
+pip install -r requirements.txt
+```
+
+Verify FAISS and PyTorch after install:
+
+```bash
+python -c "import faiss; print('faiss ok:', faiss.__version__)"
+python -c "import torch; print('mps available:', torch.backends.mps.is_available())"
+```
+
+### 4. Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4. (Recommended) Use Google Colab with GPU
+### 5. (Recommended) Use Google Colab with GPU
 
 Open `notebooks/setup.ipynb` directly in Colab for free GPU access:
 

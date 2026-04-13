@@ -1,11 +1,14 @@
 # Core ML
 torch>=2.0.0
 transformers>=4.40.0
+huggingface_hub>=0.23.0
 datasets>=2.18.0
 accelerate>=0.27.0
 
 # Semantic cache
-faiss-cpu>=1.7.4
+# On Apple Silicon, install FAISS via conda-forge instead of pip to avoid
+# wrapper/binary mismatches with osx-arm64 builds.
+faiss-cpu>=1.7.4; not (platform_system == "Darwin" and platform_machine == "arm64")
 sentence-transformers>=2.7.0
 
 # Mutator strategies
