@@ -12,6 +12,8 @@ env/
 .env
 .venv
 pip-log.txt
+~ 
+distilbert_jailbreak_detector/
 
 # Jupyter Notebooks
 .ipynb_checkpoints

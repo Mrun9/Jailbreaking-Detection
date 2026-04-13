@@ -25,13 +25,70 @@ from typing import Optional
 try:
     import nltk
     from nltk.corpus import wordnet
-    nltk.download("wordnet", quiet=True)
-    nltk.download("punkt", quiet=True)
-    nltk.download("averaged_perceptron_tagger", quiet=True)
     NLTK_OK = True
 except ImportError:
     NLTK_OK = False
     print("[mutator] nltk not found — WordNet strategy disabled.")
+
+
+def _ensure_nltk_resource(resource_paths, download_name: str) -> bool:
+    """
+    Return True if any candidate resource path exists.
+    If missing, try a quiet one-time download and check again.
+    """
+    if not NLTK_OK:
+        return False
+
+    if isinstance(resource_paths, str):
+        resource_paths = [resource_paths]
+
+    for resource_path in resource_paths:
+        try:
+            nltk.data.find(resource_path)
+            return True
+        except LookupError:
+            continue
+
+    try:
+        nltk.download(download_name, quiet=True)
+    except Exception:
+        return False
+
+    for resource_path in resource_paths:
+        try:
+            nltk.data.find(resource_path)
+            return True
+        except LookupError:
+            continue
+
+    return False
+
+
+NLTK_WORDNET_READY = _ensure_nltk_resource(
+    ["corpora/wordnet", "corpora/wordnet.zip"],
+    "wordnet"
+)
+NLTK_TAGGER_READY = _ensure_nltk_resource(
+    ["taggers/averaged_perceptron_tagger_eng", "taggers/averaged_perceptron_tagger"],
+    "averaged_perceptron_tagger_eng"
+) or _ensure_nltk_resource(
+    ["taggers/averaged_perceptron_tagger_eng", "taggers/averaged_perceptron_tagger"],
+    "averaged_perceptron_tagger"
+)
+NLTK_SENT_TOKENIZER_READY = _ensure_nltk_resource(
+    ["tokenizers/punkt_tab/english/", "tokenizers/punkt"],
+    "punkt_tab"
+) or _ensure_nltk_resource(
+    ["tokenizers/punkt_tab/english/", "tokenizers/punkt"],
+    "punkt"
+)
+
+if NLTK_OK and not NLTK_WORDNET_READY:
+    print("[mutator] NLTK wordnet data missing — WordNet strategy will fall back to the original text.")
+if NLTK_OK and not NLTK_TAGGER_READY:
+    print("[mutator] NLTK POS tagger data missing — WordNet strategy will fall back to the original text.")
+if NLTK_OK and not NLTK_SENT_TOKENIZER_READY:
+    print("[mutator] NLTK sentence tokenizer data missing — structural strategy will use simple period splitting.")
 
 try:
     from transformers import pipeline, AutoTokenizer, AutoModelForMaskedLM
@@ -89,11 +146,14 @@ def wordnet_synonym_swap(text: str, swap_rate: float = 0.2) -> str:
     Replace content words with WordNet synonyms.
     swap_rate: fraction of eligible words to swap (0.0 - 1.0)
     """
-    if not NLTK_OK:
+    if not NLTK_OK or not NLTK_WORDNET_READY or not NLTK_TAGGER_READY:
         return text
 
-    tokens = nltk.word_tokenize(text)
-    pos_tags = nltk.pos_tag(tokens)
+    tokens = nltk.wordpunct_tokenize(text)
+    try:
+        pos_tags = nltk.pos_tag(tokens)
+    except LookupError:
+        return text
 
     # Map Penn Treebank POS tags to WordNet POS
     def get_wordnet_pos(tag):
@@ -271,11 +331,14 @@ def structural_perturb(
       - Punctuation noise
     No model required — pure Python.
     """
-    if not NLTK_OK and shuffle_sentences:
+    if shuffle_sentences and (not NLTK_OK or not NLTK_SENT_TOKENIZER_READY):
         # Fallback: simple period-based split
         sentences = [s.strip() for s in text.split('.') if s.strip()]
     elif shuffle_sentences:
-        sentences = nltk.sent_tokenize(text)
+        try:
+            sentences = nltk.sent_tokenize(text)
+        except LookupError:
+            sentences = [s.strip() for s in text.split('.') if s.strip()]
     else:
         sentences = [text]
 
