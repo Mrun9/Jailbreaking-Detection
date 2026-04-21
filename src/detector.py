@@ -49,6 +49,8 @@ MODEL_PATH_ENV_VAR = "JB_DETECTOR_MODEL_PATH"
 DEFAULT_PROJECT_MODEL_DIRS = (
     REPO_ROOT / "distilbert_jailbreak_detector",
     REPO_ROOT / "checkpoints" / "final",
+    REPO_ROOT / "results" / "distilbert_experiment" / "models" / "model_a" / "checkpoint",
+    REPO_ROOT / "results" / "distilbert_experiment" / "models" / "model_b_rounds" / "round_4",
 )
 
 # ── Optional imports (graceful degradation) ───────────────────────────────────
@@ -151,6 +153,8 @@ def find_project_model_path() -> Optional[str]:
       1. JB_DETECTOR_MODEL_PATH environment override
       2. distilbert_jailbreak_detector/ in the project root
       3. checkpoints/final/ in the project root
+      4. results/distilbert_experiment/models/model_a/checkpoint
+      5. results/distilbert_experiment/models/model_b_rounds/round_4
     """
     env_path = os.getenv(MODEL_PATH_ENV_VAR, "").strip()
     if env_path:
@@ -322,6 +326,10 @@ class JailbreakCache:
         Unlike TF-IDF, FAISS supports incremental adds — no full refit needed.
         """
         if not new_prompts:
+            return
+
+        if not self._fitted or self.index is None:
+            self.build(new_prompts)
             return
 
         vecs = self._embed(new_prompts)
@@ -847,7 +855,7 @@ class TwoStageDetector:
 def load_project_detector(
     cache_path: Optional[str] = None,
     cache_threshold: float = 0.75,
-    model_threshold: float = 0.5,
+    model_threshold: float = 0.51,
     auto_update_cache: bool = True,
 ) -> TwoStageDetector:
     """

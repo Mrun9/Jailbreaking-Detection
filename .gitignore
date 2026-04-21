@@ -21,6 +21,8 @@ distilbert_jailbreak_detector/
 # Large Data & Models (Crucial for ML)
 data/
 outputs/
+reports/
+tmp/
 *.pkl
 *.h5
 *.pth

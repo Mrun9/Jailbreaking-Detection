@@ -1,0 +1,9 @@
+mode_name,mode_label,model_variant,dataset_variant,threshold,notes,num_examples,accuracy,precision,recall,f1,avg_latency_ms,avg_confidence,cache_hits,cache_hit_rate,model_calls,tp,fp,fn,tn
+baseline_default,Baseline default,Model A,test,0.50,Original classifier threshold used in the saved baseline evaluation.,4808,0.9561,0.9458,0.9509,0.9484,72.8,0.429,0,0.0,4808,1938,111,100,2659
+baseline_default,Baseline default,Model A,mutated_data,0.50,Original classifier threshold used in the saved baseline evaluation.,9012,0.7182,0.6523,0.8926,0.7538,38.537,0.6458,0,0.0,9012,3888,2072,468,2584
+balanced,Balanced,Model A,test,0.51,Slightly calibrated operating point that maximizes clean-test F1.,4808,0.9565,0.9476,0.95,0.9488,72.8,0.429,0,0.0,4808,1936,107,102,2663
+balanced,Balanced,Model A,mutated_data,0.51,Slightly calibrated operating point that maximizes clean-test F1.,9012,0.7196,0.654,0.8916,0.7545,38.537,0.6458,0,0.0,9012,3884,2055,472,2601
+strict,Strict,Model A,test,0.85,Higher-threshold mode that reduces false positives on noisy templated prompts.,4808,0.9407,0.9797,0.8783,0.9263,72.8,0.429,0,0.0,4808,1790,37,248,2733
+strict,Strict,Model A,mutated_data,0.85,Higher-threshold mode that reduces false positives on noisy templated prompts.,9012,0.7501,0.7097,0.8173,0.7597,38.537,0.6458,0,0.0,9012,3560,1456,796,3200
+adversarial_default,Adversarial default,Model B,test,0.50,Saved adversarial/cache-backed configuration from the extended experiment.,4808,0.8966,0.8223,0.9647,0.8878,78.446,0.4974,1507,0.3134,3301,1966,425,72,2345
+adversarial_default,Adversarial default,Model B,mutated_data,0.50,Saved adversarial/cache-backed configuration from the extended experiment.,9012,0.4929,0.488,1.0,0.6559,55.193,0.9904,656,0.0728,8356,4356,4570,0,86

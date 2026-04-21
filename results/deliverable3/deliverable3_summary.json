@@ -1,0 +1,489 @@
+{
+  "artifact_paths": {
+    "experiment_dir": "/Users/mrunal/Documents/Projects/ADL/Jailbreak Detection/results/distilbert_experiment",
+    "baseline_metrics": "/Users/mrunal/Documents/Projects/ADL/Jailbreak Detection/results/distilbert_experiment/models/model_a/baseline_metrics.json",
+    "model_b_history": "/Users/mrunal/Documents/Projects/ADL/Jailbreak Detection/results/distilbert_experiment/models/model_b_history.json"
+  },
+  "production_recommendation": {
+    "final_model_variant": "Model A",
+    "default_mode": "balanced",
+    "strict_mode": "strict",
+    "reason": "Extended evaluation shows the calibrated baseline is the most stable choice. The adversarial/cache-backed variant improves recall but introduces too many false positives on mutated benign prompts."
+  },
+  "best_thresholds": {
+    "model_a_clean_test": {
+      "threshold": 0.51,
+      "num_examples": 4808,
+      "accuracy": 0.9565,
+      "precision": 0.9476,
+      "recall": 0.95,
+      "f1": 0.9488,
+      "avg_latency_ms": 72.8,
+      "avg_confidence": 0.429,
+      "cache_hits": 0,
+      "cache_hit_rate": 0.0,
+      "model_calls": 4808,
+      "tp": 1936,
+      "fp": 107,
+      "fn": 102,
+      "tn": 2663
+    },
+    "model_a_mutated_data": {
+      "threshold": 0.85,
+      "num_examples": 9012,
+      "accuracy": 0.7501,
+      "precision": 0.7097,
+      "recall": 0.8173,
+      "f1": 0.7597,
+      "avg_latency_ms": 38.537,
+      "avg_confidence": 0.6458,
+      "cache_hits": 0,
+      "cache_hit_rate": 0.0,
+      "model_calls": 9012,
+      "tp": 3560,
+      "fp": 1456,
+      "fn": 796,
+      "tn": 3200
+    },
+    "model_b_clean_test": {
+      "threshold": 0.96,
+      "num_examples": 4808,
+      "accuracy": 0.9002,
+      "precision": 0.8306,
+      "recall": 0.9603,
+      "f1": 0.8908,
+      "avg_latency_ms": 78.446,
+      "avg_confidence": 0.4974,
+      "cache_hits": 1507,
+      "cache_hit_rate": 0.3134,
+      "model_calls": 3301,
+      "tp": 1957,
+      "fp": 399,
+      "fn": 81,
+      "tn": 2371
+    }
+  },
+  "operating_modes": {
+    "baseline_default": {
+      "test": {
+        "mode_name": "baseline_default",
+        "mode_label": "Baseline default",
+        "model_variant": "Model A",
+        "dataset_variant": "test",
+        "threshold": "0.50",
+        "notes": "Original classifier threshold used in the saved baseline evaluation.",
+        "num_examples": 4808,
+        "accuracy": 0.9561,
+        "precision": 0.9458,
+        "recall": 0.9509,
+        "f1": 0.9484,
+        "avg_latency_ms": 72.8,
+        "avg_confidence": 0.429,
+        "cache_hits": 0,
+        "cache_hit_rate": 0.0,
+        "model_calls": 4808,
+        "tp": 1938,
+        "fp": 111,
+        "fn": 100,
+        "tn": 2659
+      },
+      "mutated_data": {
+        "mode_name": "baseline_default",
+        "mode_label": "Baseline default",
+        "model_variant": "Model A",
+        "dataset_variant": "mutated_data",
+        "threshold": "0.50",
+        "notes": "Original classifier threshold used in the saved baseline evaluation.",
+        "num_examples": 9012,
+        "accuracy": 0.7182,
+        "precision": 0.6523,
+        "recall": 0.8926,
+        "f1": 0.7538,
+        "avg_latency_ms": 38.537,
+        "avg_confidence": 0.6458,
+        "cache_hits": 0,
+        "cache_hit_rate": 0.0,
+        "model_calls": 9012,
+        "tp": 3888,
+        "fp": 2072,
+        "fn": 468,
+        "tn": 2584
+      }
+    },
+    "balanced": {
+      "test": {
+        "mode_name": "balanced",
+        "mode_label": "Balanced",
+        "model_variant": "Model A",
+        "dataset_variant": "test",
+        "threshold": "0.51",
+        "notes": "Slightly calibrated operating point that maximizes clean-test F1.",
+        "num_examples": 4808,
+        "accuracy": 0.9565,
+        "precision": 0.9476,
+        "recall": 0.95,
+        "f1": 0.9488,
+        "avg_latency_ms": 72.8,
+        "avg_confidence": 0.429,
+        "cache_hits": 0,
+        "cache_hit_rate": 0.0,
+        "model_calls": 4808,
+        "tp": 1936,
+        "fp": 107,
+        "fn": 102,
+        "tn": 2663
+      },
+      "mutated_data": {
+        "mode_name": "balanced",
+        "mode_label": "Balanced",
+        "model_variant": "Model A",
+        "dataset_variant": "mutated_data",
+        "threshold": "0.51",
+        "notes": "Slightly calibrated operating point that maximizes clean-test F1.",
+        "num_examples": 9012,
+        "accuracy": 0.7196,
+        "precision": 0.654,
+        "recall": 0.8916,
+        "f1": 0.7545,
+        "avg_latency_ms": 38.537,
+        "avg_confidence": 0.6458,
+        "cache_hits": 0,
+        "cache_hit_rate": 0.0,
+        "model_calls": 9012,
+        "tp": 3884,
+        "fp": 2055,
+        "fn": 472,
+        "tn": 2601
+      }
+    },
+    "strict": {
+      "test": {
+        "mode_name": "strict",
+        "mode_label": "Strict",
+        "model_variant": "Model A",
+        "dataset_variant": "test",
+        "threshold": "0.85",
+        "notes": "Higher-threshold mode that reduces false positives on noisy templated prompts.",
+        "num_examples": 4808,
+        "accuracy": 0.9407,
+        "precision": 0.9797,
+        "recall": 0.8783,
+        "f1": 0.9263,
+        "avg_latency_ms": 72.8,
+        "avg_confidence": 0.429,
+        "cache_hits": 0,
+        "cache_hit_rate": 0.0,
+        "model_calls": 4808,
+        "tp": 1790,
+        "fp": 37,
+        "fn": 248,
+        "tn": 2733
+      },
+      "mutated_data": {
+        "mode_name": "strict",
+        "mode_label": "Strict",
+        "model_variant": "Model A",
+        "dataset_variant": "mutated_data",
+        "threshold": "0.85",
+        "notes": "Higher-threshold mode that reduces false positives on noisy templated prompts.",
+        "num_examples": 9012,
+        "accuracy": 0.7501,
+        "precision": 0.7097,
+        "recall": 0.8173,
+        "f1": 0.7597,
+        "avg_latency_ms": 38.537,
+        "avg_confidence": 0.6458,
+        "cache_hits": 0,
+        "cache_hit_rate": 0.0,
+        "model_calls": 9012,
+        "tp": 3560,
+        "fp": 1456,
+        "fn": 796,
+        "tn": 3200
+      }
+    },
+    "adversarial_default": {
+      "test": {
+        "mode_name": "adversarial_default",
+        "mode_label": "Adversarial default",
+        "model_variant": "Model B",
+        "dataset_variant": "test",
+        "threshold": "0.50",
+        "notes": "Saved adversarial/cache-backed configuration from the extended experiment.",
+        "num_examples": 4808,
+        "accuracy": 0.8966,
+        "precision": 0.8223,
+        "recall": 0.9647,
+        "f1": 0.8878,
+        "avg_latency_ms": 78.446,
+        "avg_confidence": 0.4974,
+        "cache_hits": 1507,
+        "cache_hit_rate": 0.3134,
+        "model_calls": 3301,
+        "tp": 1966,
+        "fp": 425,
+        "fn": 72,
+        "tn": 2345
+      },
+      "mutated_data": {
+        "mode_name": "adversarial_default",
+        "mode_label": "Adversarial default",
+        "model_variant": "Model B",
+        "dataset_variant": "mutated_data",
+        "threshold": "0.50",
+        "notes": "Saved adversarial/cache-backed configuration from the extended experiment.",
+        "num_examples": 9012,
+        "accuracy": 0.4929,
+        "precision": 0.488,
+        "recall": 1.0,
+        "f1": 0.6559,
+        "avg_latency_ms": 55.193,
+        "avg_confidence": 0.9904,
+        "cache_hits": 656,
+        "cache_hit_rate": 0.0728,
+        "model_calls": 8356,
+        "tp": 4356,
+        "fp": 4570,
+        "fn": 0,
+        "tn": 86
+      }
+    }
+  },
+  "improvement_highlights": {
+    "balanced_vs_baseline_default": {
+      "clean_test_f1_delta": 0.0004,
+      "clean_test_accuracy_delta": 0.0004,
+      "mutated_data_f1_delta": 0.0007
+    },
+    "strict_vs_baseline_default": {
+      "clean_test_false_positive_delta": -74,
+      "mutated_data_false_positive_delta": -616,
+      "clean_test_precision_delta": 0.0339,
+      "mutated_data_accuracy_delta": 0.0319,
+      "mutated_data_f1_delta": 0.0059
+    },
+    "adversarial_vs_balanced": {
+      "clean_test_f1_delta": -0.061,
+      "mutated_data_f1_delta": -0.0986,
+      "mutated_data_false_positive_delta": 2515,
+      "clean_test_cache_hit_rate": 0.3134
+    }
+  },
+  "saved_training_snapshot": {
+    "checkpoint_dir": "results/distilbert_experiment/models/model_a/checkpoint",
+    "best_val_f1": 0.9501,
+    "train_time_sec": 6192.3,
+    "test_metrics": {
+      "loss": 0.1327,
+      "accuracy": 0.9545,
+      "precision": 0.9452,
+      "recall": 0.9475,
+      "f1": 0.9463,
+      "tp": 1931,
+      "fp": 112,
+      "fn": 107,
+      "tn": 2658
+    }
+  },
+  "adversarial_training_summary": {
+    "rounds_completed": 4,
+    "latest_round": {
+      "round": 4,
+      "dataset_size": 20599,
+      "jailbreak_count": 9522,
+      "benign_count": 11077,
+      "fooling_variants_found": 60,
+      "detector_summary": {
+        "seeds_processed": 8212,
+        "variants_generated": 24636,
+        "escaped_variants": 61,
+        "hard_examples": 60,
+        "cache_hits": 21358,
+        "model_scans": 3278,
+        "unknown_scans": 0,
+        "detector_stats": {
+          "total": 24636,
+          "cache_hits": 21358,
+          "model_calls": 3278,
+          "jailbreaks_found": 21358,
+          "unknown": 0,
+          "cache_hit_rate": 0.867,
+          "cache_size": 9462
+        }
+      },
+      "best_val_f1": 0.9436,
+      "train_time_sec": 1059.0,
+      "test_metrics": {
+        "loss": 0.3993,
+        "accuracy": 0.9409,
+        "precision": 0.9133,
+        "recall": 0.9509,
+        "f1": 0.9317,
+        "tp": 1938,
+        "fp": 184,
+        "fn": 100,
+        "tn": 2586
+      },
+      "dry_run": false
+    },
+    "history": [
+      {
+        "round": 1,
+        "dataset_size": 20337,
+        "jailbreak_count": 9260,
+        "benign_count": 11077,
+        "fooling_variants_found": 1108,
+        "detector_summary": {
+          "seeds_processed": 8152,
+          "variants_generated": 24456,
+          "escaped_variants": 1167,
+          "hard_examples": 1108,
+          "cache_hits": 20785,
+          "model_scans": 3671,
+          "unknown_scans": 0,
+          "detector_stats": {
+            "total": 24456,
+            "cache_hits": 20785,
+            "model_calls": 3671,
+            "jailbreaks_found": 20785,
+            "unknown": 0,
+            "cache_hit_rate": 0.85,
+            "cache_size": 8152
+          }
+        },
+        "best_val_f1": 0.9483,
+        "train_time_sec": 991.8,
+        "test_metrics": {
+          "loss": 0.1362,
+          "accuracy": 0.9547,
+          "precision": 0.9461,
+          "recall": 0.947,
+          "f1": 0.9465,
+          "tp": 1930,
+          "fp": 110,
+          "fn": 108,
+          "tn": 2660
+        },
+        "dry_run": false
+      },
+      {
+        "round": 2,
+        "dataset_size": 20478,
+        "jailbreak_count": 9401,
+        "benign_count": 11077,
+        "fooling_variants_found": 141,
+        "detector_summary": {
+          "seeds_processed": 8172,
+          "variants_generated": 24516,
+          "escaped_variants": 151,
+          "hard_examples": 141,
+          "cache_hits": 21246,
+          "model_scans": 3270,
+          "unknown_scans": 0,
+          "detector_stats": {
+            "total": 24516,
+            "cache_hits": 21246,
+            "model_calls": 3270,
+            "jailbreaks_found": 21246,
+            "unknown": 0,
+            "cache_hit_rate": 0.867,
+            "cache_size": 9260
+          }
+        },
+        "best_val_f1": 0.9412,
+        "train_time_sec": 1047.9,
+        "test_metrics": {
+          "loss": 0.1877,
+          "accuracy": 0.9486,
+          "precision": 0.9379,
+          "recall": 0.9411,
+          "f1": 0.9395,
+          "tp": 1918,
+          "fp": 127,
+          "fn": 120,
+          "tn": 2643
+        },
+        "dry_run": false
+      },
+      {
+        "round": 3,
+        "dataset_size": 20539,
+        "jailbreak_count": 9462,
+        "benign_count": 11077,
+        "fooling_variants_found": 61,
+        "detector_summary": {
+          "seeds_processed": 8192,
+          "variants_generated": 24576,
+          "escaped_variants": 63,
+          "hard_examples": 61,
+          "cache_hits": 21362,
+          "model_scans": 3214,
+          "unknown_scans": 0,
+          "detector_stats": {
+            "total": 24576,
+            "cache_hits": 21362,
+            "model_calls": 3214,
+            "jailbreaks_found": 21362,
+            "unknown": 0,
+            "cache_hit_rate": 0.869,
+            "cache_size": 9401
+          }
+        },
+        "best_val_f1": 0.9387,
+        "train_time_sec": 1054.5,
+        "test_metrics": {
+          "loss": 0.3537,
+          "accuracy": 0.9407,
+          "precision": 0.914,
+          "recall": 0.9495,
+          "f1": 0.9314,
+          "tp": 1935,
+          "fp": 182,
+          "fn": 103,
+          "tn": 2588
+        },
+        "dry_run": false
+      },
+      {
+        "round": 4,
+        "dataset_size": 20599,
+        "jailbreak_count": 9522,
+        "benign_count": 11077,
+        "fooling_variants_found": 60,
+        "detector_summary": {
+          "seeds_processed": 8212,
+          "variants_generated": 24636,
+          "escaped_variants": 61,
+          "hard_examples": 60,
+          "cache_hits": 21358,
+          "model_scans": 3278,
+          "unknown_scans": 0,
+          "detector_stats": {
+            "total": 24636,
+            "cache_hits": 21358,
+            "model_calls": 3278,
+            "jailbreaks_found": 21358,
+            "unknown": 0,
+            "cache_hit_rate": 0.867,
+            "cache_size": 9462
+          }
+        },
+        "best_val_f1": 0.9436,
+        "train_time_sec": 1059.0,
+        "test_metrics": {
+          "loss": 0.3993,
+          "accuracy": 0.9409,
+          "precision": 0.9133,
+          "recall": 0.9509,
+          "f1": 0.9317,
+          "tp": 1938,
+          "fp": 184,
+          "fn": 100,
+          "tn": 2586
+        },
+        "dry_run": false
+      }
+    ]
+  },
+  "threshold_sweep_rows": 404
+}
