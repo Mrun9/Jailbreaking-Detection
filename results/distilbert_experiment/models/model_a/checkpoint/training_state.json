@@ -1,0 +1,28 @@
+{
+  "config_signature": {
+    "model_name": "distilbert/distilbert-base-uncased",
+    "num_epochs": 3,
+    "batch_size": 16,
+    "learning_rate": 2e-05,
+    "max_length": 256,
+    "warmup_ratio": 0.1,
+    "weight_decay": 0.01,
+    "num_rounds": 4,
+    "variants_per_seed": 5,
+    "min_fool_confidence": 0.4,
+    "detector_model_threshold": 0.5,
+    "mutator_strategies": [
+      "wordnet",
+      "bert",
+      "t5",
+      "backtranslate",
+      "structural"
+    ],
+    "cache_threshold": 0.72,
+    "seed": 42,
+    "val_split": 0.15
+  },
+  "last_completed_epoch": 3,
+  "last_epoch_checkpoint": "results/distilbert_experiment/models/model_a/checkpoint/epoch_3",
+  "best_f1": 0.9501
+}

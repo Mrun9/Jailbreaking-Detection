@@ -1,0 +1,5 @@
+num_examples,accuracy,precision,recall,f1,avg_latency_ms,avg_confidence,avg_jailbreak_confidence,cache_hits,cache_hit_rate,tp,fp,fn,tn,experiment_name,model_variant,dataset_variant,csv_path
+4808,0.9561,0.9458,0.9509,0.9484,72.8,0.429,0.9326,0,0.0,1938,111,100,2659,test1_model_a_on_test,Model A,test,results/distilbert_experiment/csv/test1_model_a_on_test.csv
+9012,0.7182,0.6523,0.8926,0.7538,38.537,0.6458,0.8693,0,0.0,3888,2072,468,2584,test2_model_a_on_mutated_data,Model A,mutated_data,results/distilbert_experiment/csv/test2_model_a_on_mutated_data.csv
+4808,0.8966,0.8223,0.9647,0.8878,78.446,0.4974,0.9638,1507,0.3134,1966,425,72,2345,test3_model_b_on_test,Model B,test,results/distilbert_experiment/csv/test3_model_b_on_test.csv
+9012,0.4929,0.488,1.0,0.6559,55.193,0.9904,1.0,656,0.0728,4356,4570,0,86,test4_model_b_on_mutated_data,Model B,mutated_data,results/distilbert_experiment/csv/test4_model_b_on_mutated_data.csv

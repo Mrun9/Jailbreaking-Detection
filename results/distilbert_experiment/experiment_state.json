@@ -1,0 +1,69 @@
+{
+  "config": {
+    "dataset_csv": "results/collected_prompts.csv",
+    "output_dir": "results/distilbert_experiment",
+    "base_model_name": "distilbert/distilbert-base-uncased",
+    "train_fraction": 0.8,
+    "test_fraction": 0.2,
+    "seed": 42,
+    "num_epochs": 3,
+    "batch_size": 16,
+    "learning_rate": 2e-05,
+    "max_length": 256,
+    "warmup_ratio": 0.1,
+    "weight_decay": 0.01,
+    "val_split": 0.15,
+    "num_rounds": 4,
+    "variants_per_seed": 5,
+    "mutated_variants_per_prompt": 3,
+    "max_mutation_prompt_chars": 1000,
+    "min_fool_confidence": 0.4,
+    "detector_model_threshold": 0.5,
+    "cache_threshold": 0.72,
+    "training_mutator_strategies": [
+      "wordnet",
+      "bert",
+      "t5",
+      "backtranslate",
+      "structural"
+    ],
+    "mutated_data_mutator_strategies": [
+      "wordnet",
+      "bert",
+      "t5",
+      "backtranslate",
+      "roleplay",
+      "structural"
+    ],
+    "mutator_combine": true,
+    "mutate_only_jailbreak": false,
+    "verbose": true,
+    "show_progress_bars": true,
+    "dry_run": false
+  },
+  "splits_complete": true,
+  "baseline_complete": true,
+  "baseline_checkpoint_path": "results/distilbert_experiment/models/model_a/checkpoint",
+  "adversarial_complete": true,
+  "adversarial_checkpoint_path": "results/distilbert_experiment/models/model_b_rounds/round_4",
+  "adversarial_cache_path": "results/distilbert_experiment/models/model_b_cache",
+  "evaluations": {
+    "test1_model_a_on_test": {
+      "complete": true,
+      "csv_path": "results/distilbert_experiment/csv/test1_model_a_on_test.csv"
+    },
+    "test2_model_a_on_mutated_data": {
+      "complete": true,
+      "csv_path": "results/distilbert_experiment/csv/test2_model_a_on_mutated_data.csv"
+    },
+    "test3_model_b_on_test": {
+      "complete": true,
+      "csv_path": "results/distilbert_experiment/csv/test3_model_b_on_test.csv"
+    },
+    "test4_model_b_on_mutated_data": {
+      "complete": true,
+      "csv_path": "results/distilbert_experiment/csv/test4_model_b_on_mutated_data.csv"
+    }
+  },
+  "summary_complete": true
+}

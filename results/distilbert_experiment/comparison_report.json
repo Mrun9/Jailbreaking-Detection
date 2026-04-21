@@ -1,0 +1,133 @@
+{
+  "config": {
+    "dataset_csv": "results/collected_prompts.csv",
+    "base_model_name": "distilbert/distilbert-base-uncased",
+    "train_fraction": 0.8,
+    "test_fraction": 0.2,
+    "mutated_variants_per_prompt": 3,
+    "max_mutation_prompt_chars": 1000,
+    "training_mutator_strategies": [
+      "wordnet",
+      "bert",
+      "t5",
+      "backtranslate",
+      "structural"
+    ],
+    "mutated_data_mutator_strategies": [
+      "wordnet",
+      "bert",
+      "t5",
+      "backtranslate",
+      "roleplay",
+      "structural"
+    ],
+    "mutate_only_jailbreak": false,
+    "mutator_combine": true,
+    "num_rounds": 4,
+    "variants_per_seed": 5,
+    "seed": 42
+  },
+  "questions": {
+    "was_adversarial_training_useful": {
+      "clean_test_accuracy_delta": -0.0595,
+      "clean_test_f1_delta": -0.0606,
+      "mutated_data_accuracy_delta": -0.2253,
+      "mutated_data_f1_delta": -0.0979
+    },
+    "did_cache_reduce_latency": {
+      "clean_test_latency_delta_ms": -5.646,
+      "mutated_data_latency_delta_ms": -16.656,
+      "model_b_clean_cache_hit_rate": 0.3134,
+      "model_b_mutated_data_cache_hit_rate": 0.0728
+    },
+    "did_mutator_generate_useful_prompts": {
+      "model_a_clean_vs_mutated_confidence_delta": 0.2168,
+      "model_b_clean_vs_mutated_confidence_delta": 0.493,
+      "model_a_mutated_vs_model_b_mutated_confidence_delta": 0.3446,
+      "model_a_mutated_vs_model_b_mutated_f1_delta": -0.0979
+    }
+  },
+  "experiment_summaries": {
+    "test1_model_a_on_test": {
+      "num_examples": 4808,
+      "accuracy": 0.9561,
+      "precision": 0.9458,
+      "recall": 0.9509,
+      "f1": 0.9484,
+      "avg_latency_ms": 72.8,
+      "avg_confidence": 0.429,
+      "avg_jailbreak_confidence": 0.9326,
+      "cache_hits": 0,
+      "cache_hit_rate": 0.0,
+      "tp": 1938,
+      "fp": 111,
+      "fn": 100,
+      "tn": 2659,
+      "experiment_name": "test1_model_a_on_test",
+      "model_variant": "Model A",
+      "dataset_variant": "test",
+      "csv_path": "results/distilbert_experiment/csv/test1_model_a_on_test.csv"
+    },
+    "test2_model_a_on_mutated_data": {
+      "num_examples": 9012,
+      "accuracy": 0.7182,
+      "precision": 0.6523,
+      "recall": 0.8926,
+      "f1": 0.7538,
+      "avg_latency_ms": 38.537,
+      "avg_confidence": 0.6458,
+      "avg_jailbreak_confidence": 0.8693,
+      "cache_hits": 0,
+      "cache_hit_rate": 0.0,
+      "tp": 3888,
+      "fp": 2072,
+      "fn": 468,
+      "tn": 2584,
+      "experiment_name": "test2_model_a_on_mutated_data",
+      "model_variant": "Model A",
+      "dataset_variant": "mutated_data",
+      "csv_path": "results/distilbert_experiment/csv/test2_model_a_on_mutated_data.csv"
+    },
+    "test3_model_b_on_test": {
+      "num_examples": 4808,
+      "accuracy": 0.8966,
+      "precision": 0.8223,
+      "recall": 0.9647,
+      "f1": 0.8878,
+      "avg_latency_ms": 78.446,
+      "avg_confidence": 0.4974,
+      "avg_jailbreak_confidence": 0.9638,
+      "cache_hits": 1507,
+      "cache_hit_rate": 0.3134,
+      "tp": 1966,
+      "fp": 425,
+      "fn": 72,
+      "tn": 2345,
+      "experiment_name": "test3_model_b_on_test",
+      "model_variant": "Model B",
+      "dataset_variant": "test",
+      "csv_path": "results/distilbert_experiment/csv/test3_model_b_on_test.csv"
+    },
+    "test4_model_b_on_mutated_data": {
+      "num_examples": 9012,
+      "accuracy": 0.4929,
+      "precision": 0.488,
+      "recall": 1.0,
+      "f1": 0.6559,
+      "avg_latency_ms": 55.193,
+      "avg_confidence": 0.9904,
+      "avg_jailbreak_confidence": 1.0,
+      "cache_hits": 656,
+      "cache_hit_rate": 0.0728,
+      "tp": 4356,
+      "fp": 4570,
+      "fn": 0,
+      "tn": 86,
+      "experiment_name": "test4_model_b_on_mutated_data",
+      "model_variant": "Model B",
+      "dataset_variant": "mutated_data",
+      "csv_path": "results/distilbert_experiment/csv/test4_model_b_on_mutated_data.csv"
+    }
+  },
+  "artifact_dir": "results/distilbert_experiment"
+}

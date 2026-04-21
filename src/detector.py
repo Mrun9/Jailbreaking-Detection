@@ -177,35 +177,51 @@ class TransformerEmbedder:
     recipe while avoiding direct Hub calls that currently fail in this env.
     """
 
-    def __init__(self, model_name_or_path: str, device: Optional[str] = None):
+    def __init__(
+        self,
+        model_name_or_path: str,
+        device: Optional[str] = None,
+        batch_size: int = 32,
+        max_length: int = 256,
+    ):
         if not TRANSFORMERS_OK:
             raise RuntimeError("transformers and torch are required for semantic cache embeddings.")
 
         resolved_path = _resolve_model_path(model_name_or_path)
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+        self.batch_size = batch_size
+        self.max_length = max_length
         self.tokenizer = AutoTokenizer.from_pretrained(resolved_path)
         self.model = AutoModel.from_pretrained(resolved_path)
         self.model.to(self.device)
         self.model.eval()
 
     def encode(self, texts: list) -> np.ndarray:
-        inputs = self.tokenizer(
-            texts,
-            return_tensors="pt",
-            padding=True,
-            truncation=True,
-            max_length=512,
-        ).to(self.device)
+        if not texts:
+            return np.empty((0, 0), dtype=np.float32)
 
-        with torch.no_grad():
-            outputs = self.model(**inputs)
+        batches = []
+        for start in range(0, len(texts), self.batch_size):
+            batch = texts[start:start + self.batch_size]
+            inputs = self.tokenizer(
+                batch,
+                return_tensors="pt",
+                padding=True,
+                truncation=True,
+                max_length=self.max_length,
+            ).to(self.device)
 
-        token_embeddings = outputs.last_hidden_state
-        attention_mask = inputs["attention_mask"].unsqueeze(-1).float()
-        summed = (token_embeddings * attention_mask).sum(dim=1)
-        counts = attention_mask.sum(dim=1).clamp(min=1e-9)
-        sentence_embeddings = summed / counts
-        return sentence_embeddings.cpu().numpy()
+            with torch.inference_mode():
+                outputs = self.model(**inputs)
+
+            token_embeddings = outputs.last_hidden_state
+            attention_mask = inputs["attention_mask"].unsqueeze(-1).float()
+            summed = (token_embeddings * attention_mask).sum(dim=1)
+            counts = attention_mask.sum(dim=1).clamp(min=1e-9)
+            sentence_embeddings = (summed / counts).cpu().numpy().astype(np.float32)
+            batches.append(sentence_embeddings)
+
+        return np.concatenate(batches, axis=0)
 
 
 # ── Stage 1 (PRIMARY): FAISS Semantic Cache ───────────────────────────────────

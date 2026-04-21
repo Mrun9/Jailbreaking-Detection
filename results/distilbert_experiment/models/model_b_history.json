@@ -1,0 +1,158 @@
+[
+  {
+    "round": 1,
+    "dataset_size": 20337,
+    "jailbreak_count": 9260,
+    "benign_count": 11077,
+    "fooling_variants_found": 1108,
+    "detector_summary": {
+      "seeds_processed": 8152,
+      "variants_generated": 24456,
+      "escaped_variants": 1167,
+      "hard_examples": 1108,
+      "cache_hits": 20785,
+      "model_scans": 3671,
+      "unknown_scans": 0,
+      "detector_stats": {
+        "total": 24456,
+        "cache_hits": 20785,
+        "model_calls": 3671,
+        "jailbreaks_found": 20785,
+        "unknown": 0,
+        "cache_hit_rate": 0.85,
+        "cache_size": 8152
+      }
+    },
+    "best_val_f1": 0.9483,
+    "train_time_sec": 991.8,
+    "test_metrics": {
+      "loss": 0.1362,
+      "accuracy": 0.9547,
+      "precision": 0.9461,
+      "recall": 0.947,
+      "f1": 0.9465,
+      "tp": 1930,
+      "fp": 110,
+      "fn": 108,
+      "tn": 2660
+    },
+    "dry_run": false
+  },
+  {
+    "round": 2,
+    "dataset_size": 20478,
+    "jailbreak_count": 9401,
+    "benign_count": 11077,
+    "fooling_variants_found": 141,
+    "detector_summary": {
+      "seeds_processed": 8172,
+      "variants_generated": 24516,
+      "escaped_variants": 151,
+      "hard_examples": 141,
+      "cache_hits": 21246,
+      "model_scans": 3270,
+      "unknown_scans": 0,
+      "detector_stats": {
+        "total": 24516,
+        "cache_hits": 21246,
+        "model_calls": 3270,
+        "jailbreaks_found": 21246,
+        "unknown": 0,
+        "cache_hit_rate": 0.867,
+        "cache_size": 9260
+      }
+    },
+    "best_val_f1": 0.9412,
+    "train_time_sec": 1047.9,
+    "test_metrics": {
+      "loss": 0.1877,
+      "accuracy": 0.9486,
+      "precision": 0.9379,
+      "recall": 0.9411,
+      "f1": 0.9395,
+      "tp": 1918,
+      "fp": 127,
+      "fn": 120,
+      "tn": 2643
+    },
+    "dry_run": false
+  },
+  {
+    "round": 3,
+    "dataset_size": 20539,
+    "jailbreak_count": 9462,
+    "benign_count": 11077,
+    "fooling_variants_found": 61,
+    "detector_summary": {
+      "seeds_processed": 8192,
+      "variants_generated": 24576,
+      "escaped_variants": 63,
+      "hard_examples": 61,
+      "cache_hits": 21362,
+      "model_scans": 3214,
+      "unknown_scans": 0,
+      "detector_stats": {
+        "total": 24576,
+        "cache_hits": 21362,
+        "model_calls": 3214,
+        "jailbreaks_found": 21362,
+        "unknown": 0,
+        "cache_hit_rate": 0.869,
+        "cache_size": 9401
+      }
+    },
+    "best_val_f1": 0.9387,
+    "train_time_sec": 1054.5,
+    "test_metrics": {
+      "loss": 0.3537,
+      "accuracy": 0.9407,
+      "precision": 0.914,
+      "recall": 0.9495,
+      "f1": 0.9314,
+      "tp": 1935,
+      "fp": 182,
+      "fn": 103,
+      "tn": 2588
+    },
+    "dry_run": false
+  },
+  {
+    "round": 4,
+    "dataset_size": 20599,
+    "jailbreak_count": 9522,
+    "benign_count": 11077,
+    "fooling_variants_found": 60,
+    "detector_summary": {
+      "seeds_processed": 8212,
+      "variants_generated": 24636,
+      "escaped_variants": 61,
+      "hard_examples": 60,
+      "cache_hits": 21358,
+      "model_scans": 3278,
+      "unknown_scans": 0,
+      "detector_stats": {
+        "total": 24636,
+        "cache_hits": 21358,
+        "model_calls": 3278,
+        "jailbreaks_found": 21358,
+        "unknown": 0,
+        "cache_hit_rate": 0.867,
+        "cache_size": 9462
+      }
+    },
+    "best_val_f1": 0.9436,
+    "train_time_sec": 1059.0,
+    "test_metrics": {
+      "loss": 0.3993,
+      "accuracy": 0.9409,
+      "precision": 0.9133,
+      "recall": 0.9509,
+      "f1": 0.9317,
+      "tp": 1938,
+      "fp": 184,
+      "fn": 100,
+      "tn": 2586
+    },
+    "dry_run": false
+  }
+]

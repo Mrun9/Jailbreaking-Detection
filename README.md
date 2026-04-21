@@ -153,6 +153,22 @@ python src/mutator.py
 python src/detector.py
 ```
 
+### Run experiment evaluation only
+
+Use this when the splits and trained artifacts already exist and you want to
+generate or regenerate the experiment CSVs/reports without retraining:
+
+```bash
+python3 src/distilbert_eval_only.py
+```
+
+To recompute the four evaluation CSVs from scratch while still avoiding any
+training:
+
+```bash
+python3 src/distilbert_eval_only.py --force-eval
+```
+
 ---
 
 ## Dataset

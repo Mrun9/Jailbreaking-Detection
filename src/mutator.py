@@ -253,9 +253,11 @@ def bert_contextual_swap(
         masked_text = ' '.join(masked)
 
         inputs = tokenizer(masked_text, return_tensors="pt")
+        input_ids = inputs["input_ids"]
         if device is not None:
             inputs = {k: v.to(device) for k, v in inputs.items()}
-        mask_idx = (inputs.input_ids == tokenizer.mask_token_id).nonzero(as_tuple=True)[1]
+            input_ids = input_ids.to(device)
+        mask_idx = (input_ids == tokenizer.mask_token_id).nonzero(as_tuple=True)[1]
 
         if len(mask_idx) == 0:
             continue
@@ -265,12 +267,14 @@ def bert_contextual_swap(
 
         logits = outputs.logits[0, mask_idx[0]]
         top_tokens = logits.topk(top_k).indices.tolist()
-        candidates = [
-            tokenizer.decode([t]).strip()
-            for t in top_tokens
-            if tokenizer.decode([t]).strip().lower() != token.lower()
-            and tokenizer.decode([t]).strip().isalpha()
-        ]
+        candidates = []
+        for token_id in top_tokens:
+            candidate = tokenizer.decode([token_id]).strip()
+            if candidate.lower() == token.lower():
+                continue
+            if not candidate.isalpha():
+                continue
+            candidates.append(candidate)
 
         if candidates:
             result[i] = candidates[0]

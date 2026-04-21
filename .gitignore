@@ -26,6 +26,8 @@ outputs/
 *.pth
 *.onnx
 *.weights
+*.safetensors
+*.faiss
 
 # IDEs
 .vscode/

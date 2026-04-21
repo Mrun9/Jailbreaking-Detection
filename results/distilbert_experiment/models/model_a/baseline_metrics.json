@@ -1,0 +1,16 @@
+{
+  "checkpoint_dir": "results/distilbert_experiment/models/model_a/checkpoint",
+  "best_val_f1": 0.9501,
+  "train_time_sec": 6192.3,
+  "test_metrics": {
+    "loss": 0.1327,
+    "accuracy": 0.9545,
+    "precision": 0.9452,
+    "recall": 0.9475,
+    "f1": 0.9463,
+    "tp": 1931,
+    "fp": 112,
+    "fn": 107,
+    "tn": 2658
+  }
+}

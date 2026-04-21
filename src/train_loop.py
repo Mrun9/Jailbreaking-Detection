@@ -48,7 +48,13 @@ except ImportError:
     print("[train_loop] torch/transformers not found.")
 
 from mutator import JailbreakMutator
-from detector import TwoStageDetector, NeuralClassifier, make_cache, find_project_model_path
+from detector import (
+    TwoStageDetector,
+    NeuralClassifier,
+    make_cache,
+    find_project_model_path,
+    load_cache,
+)
 
 
 # ── Config dataclass ──────────────────────────────────────────────────────────
@@ -93,6 +99,7 @@ class TrainingConfig:
     output_dir: str = "checkpoints"
     cache_save_path: str = "jailbreak_cache.pkl"
     history_save_path: str = "training_history.json"
+    resume_state_path: Optional[str] = None
 
     # Misc
     seed: int = 42
@@ -257,8 +264,131 @@ class AdversarialTrainer:
 
         # Training history (for plotting / report)
         self.history = []
+        self.latest_checkpoint_path = None
+        self.final_checkpoint_path = None
+        self.final_cache_path = None
 
         Path(config.output_dir).mkdir(parents=True, exist_ok=True)
+
+    def _resume_state_file(self) -> Path:
+        """Location of the resumable adversarial-training state file."""
+        if self.config.resume_state_path:
+            return Path(self.config.resume_state_path)
+        return Path(self.config.output_dir) / "resume_state.json"
+
+    def _config_signature(self) -> dict:
+        """Subset of training config used to validate resume compatibility."""
+        return {
+            "model_name": self.config.model_name,
+            "num_epochs": self.config.num_epochs,
+            "batch_size": self.config.batch_size,
+            "learning_rate": self.config.learning_rate,
+            "max_length": self.config.max_length,
+            "warmup_ratio": self.config.warmup_ratio,
+            "weight_decay": self.config.weight_decay,
+            "num_rounds": self.config.num_rounds,
+            "variants_per_seed": self.config.variants_per_seed,
+            "min_fool_confidence": self.config.min_fool_confidence,
+            "detector_model_threshold": self.config.detector_model_threshold,
+            "mutator_strategies": self.config.mutator_strategies,
+            "cache_threshold": self.config.cache_threshold,
+            "seed": self.config.seed,
+            "val_split": self.config.val_split,
+        }
+
+    def _round_cache_path(self, round_num: int) -> str:
+        """Checkpoint cache path for a completed round."""
+        return str(Path(self.config.output_dir) / f"cache_round_{round_num}")
+
+    def _load_resume_state(self) -> Optional[dict]:
+        """Load resumable training state if it exists and looks usable."""
+        if self.config.dry_run:
+            return None
+
+        state_path = self._resume_state_file()
+        if not state_path.exists():
+            return None
+
+        with state_path.open("r", encoding="utf-8") as handle:
+            state = json.load(handle)
+
+        if state.get("config_signature") != self._config_signature():
+            self._notify(
+                "Resume state exists but the training configuration changed. Starting fresh.",
+                component="resume",
+            )
+            return None
+
+        checkpoint_path = state.get("current_model_source")
+        cache_path = state.get("latest_cache_path")
+        next_round = int(state.get("next_round", 1))
+
+        if checkpoint_path and not Path(checkpoint_path).exists():
+            self._notify(
+                f"Resume state found, but checkpoint is missing: {checkpoint_path}. Starting fresh.",
+                component="resume",
+            )
+            return None
+
+        if cache_path:
+            cache_exists = (
+                Path(cache_path).exists()
+                or (Path(cache_path + ".faiss").exists() and Path(cache_path + ".meta.pkl").exists())
+            )
+            if not cache_exists:
+                self._notify(
+                    f"Resume state found, but cache is missing: {cache_path}. Starting fresh.",
+                    component="resume",
+                )
+                return None
+
+        if next_round < 1:
+            return None
+
+        return state
+
+    def _save_resume_state(
+        self,
+        next_round: int,
+        all_texts: list,
+        all_labels: list,
+        seed_prompts: list,
+        cache,
+        latest_cache_path: Optional[str],
+        completed: bool = False,
+    ) -> None:
+        """Persist enough state to continue the adversarial loop after interruption."""
+        if self.config.dry_run:
+            return
+
+        state_path = self._resume_state_file()
+        state_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with state_path.open("w", encoding="utf-8") as handle:
+            json.dump(
+                {
+                    "config_signature": self._config_signature(),
+                    "next_round": next_round,
+                    "completed": completed,
+                    "all_texts": all_texts,
+                    "all_labels": all_labels,
+                    "seed_prompts": seed_prompts,
+                    "history": self.history,
+                    "current_model_source": self.current_model_source,
+                    "latest_checkpoint_path": self.latest_checkpoint_path,
+                    "latest_cache_path": latest_cache_path,
+                    "final_checkpoint_path": self.final_checkpoint_path,
+                    "final_cache_path": self.final_cache_path,
+                },
+                handle,
+                indent=2,
+            )
+
+        if latest_cache_path:
+            self._notify(
+                f"Saved resumable training state for round {next_round - 1}.",
+                component="resume",
+            )
 
     def _resolve_model_source(self, configured_model_name: str) -> str:
         """
@@ -338,6 +468,15 @@ class AdversarialTrainer:
         model.eval()
         return model
 
+    def _save_checkpoint(self, model, checkpoint_dir: str) -> str:
+        """Persist model/tokenizer artifacts and track the latest checkpoint path."""
+        Path(checkpoint_dir).mkdir(parents=True, exist_ok=True)
+        model.save_pretrained(checkpoint_dir)
+        self.tokenizer.save_pretrained(checkpoint_dir)
+        self.latest_checkpoint_path = checkpoint_dir
+        self._notify(f"Saved checkpoint to {checkpoint_dir}", component="checkpoint")
+        return checkpoint_dir
+
     def _build_dataloaders(self, texts, labels):
         """Split data and return train/val dataloaders."""
         # Stratified split to keep class balance
@@ -364,11 +503,45 @@ class AdversarialTrainer:
 
         return train_loader, val_loader
 
-    def _train_classifier(self, texts, labels) -> object:
+    def _save_epoch_checkpoint(self, model, checkpoint_dir: str, epoch_num: int) -> str:
+        """Persist a per-epoch checkpoint that can be reused after interruption."""
+        epoch_dir = Path(checkpoint_dir) / f"epoch_{epoch_num}"
+        epoch_dir.mkdir(parents=True, exist_ok=True)
+        model.save_pretrained(epoch_dir)
+        self.tokenizer.save_pretrained(epoch_dir)
+        return str(epoch_dir)
+
+    def _train_classifier(self, texts, labels, checkpoint_dir: Optional[str] = None) -> object:
         """
         Fine-tune the transformer on the current dataset.
         Returns the trained model.
         """
+        start_epoch = 0
+        best_f1 = 0.0
+        best_state = None
+        epoch_state_path = None
+        if checkpoint_dir:
+            epoch_state_path = Path(checkpoint_dir) / "training_state.json"
+
+        if checkpoint_dir and epoch_state_path and epoch_state_path.exists() and not self.config.dry_run:
+            with epoch_state_path.open("r", encoding="utf-8") as handle:
+                epoch_state = json.load(handle)
+
+            last_checkpoint_path = epoch_state.get("last_epoch_checkpoint")
+            if (
+                epoch_state.get("config_signature") == self._config_signature()
+                and last_checkpoint_path
+                and Path(last_checkpoint_path).exists()
+            ):
+                self.current_model_source = last_checkpoint_path
+                start_epoch = int(epoch_state.get("last_completed_epoch", 0))
+                best_f1 = float(epoch_state.get("best_f1", 0.0))
+                self._notify(
+                    f"Resuming classifier training from epoch {start_epoch + 1}/{self.config.num_epochs} "
+                    f"using checkpoint {last_checkpoint_path}.",
+                    component="classifier",
+                )
+
         model = self._build_model()
         train_loader, val_loader = self._build_dataloaders(texts, labels)
 
@@ -390,10 +563,7 @@ class AdversarialTrainer:
             f"for {self.config.num_epochs} epoch(s).",
             component="classifier",
         )
-        best_f1 = 0.0
-        best_state = None
-
-        for epoch in range(self.config.num_epochs):
+        for epoch in range(start_epoch, self.config.num_epochs):
             train_loss = train_one_epoch(
                 model,
                 train_loader,
@@ -417,11 +587,113 @@ class AdversarialTrainer:
                 best_f1 = val_metrics["f1"]
                 best_state = {k: v.clone() for k, v in model.state_dict().items()}
 
+            if checkpoint_dir and not self.config.dry_run:
+                epoch_checkpoint_path = self._save_epoch_checkpoint(model, checkpoint_dir, epoch + 1)
+                with (Path(checkpoint_dir) / "training_state.json").open("w", encoding="utf-8") as handle:
+                    json.dump(
+                        {
+                            "config_signature": self._config_signature(),
+                            "last_completed_epoch": epoch + 1,
+                            "last_epoch_checkpoint": epoch_checkpoint_path,
+                            "best_f1": best_f1,
+                        },
+                        handle,
+                        indent=2,
+                    )
+
         # Restore best weights
         if best_state:
             model.load_state_dict(best_state)
 
         return model, best_f1
+
+    def train_baseline(
+        self,
+        jailbreak_prompts: list,
+        benign_prompts: list,
+        checkpoint_dir: Optional[str] = None,
+        cache_save_path: Optional[str] = None,
+        build_cache: bool = False,
+        test_prompts: Optional[list] = None,
+        test_labels: Optional[list] = None,
+    ) -> dict:
+        """
+        Train a single non-adversarial classifier on the provided train split.
+
+        This is the baseline "Model A" counterpart to the multi-round
+        adversarial loop used for "Model B".
+        """
+        all_texts = jailbreak_prompts + benign_prompts
+        all_labels = [1] * len(jailbreak_prompts) + [0] * len(benign_prompts)
+
+        self._notify(
+            f"Baseline training started on {len(all_texts)} examples "
+            f"({len(jailbreak_prompts)} jailbreak, {len(benign_prompts)} benign).",
+            component="baseline",
+        )
+
+        if self.config.dry_run:
+            model = self._load_frozen_model_for_dry_run()
+            best_f1 = None
+            train_time = 0.0
+            self._notify(
+                "Dry run enabled: skipped baseline fine-tuning and loaded the current checkpoint.",
+                component="baseline",
+            )
+        else:
+            t0 = time.time()
+            model, best_f1 = self._train_classifier(all_texts, all_labels, checkpoint_dir=checkpoint_dir)
+            train_time = time.time() - t0
+
+        saved_checkpoint = None
+        if checkpoint_dir and not self.config.dry_run:
+            saved_checkpoint = self._save_checkpoint(model, checkpoint_dir)
+            self.final_checkpoint_path = saved_checkpoint
+            self.current_model_source = saved_checkpoint
+
+        cache = None
+        saved_cache_path = None
+        if build_cache:
+            cache = make_cache(similarity_threshold=self.config.cache_threshold)
+            cache.build(jailbreak_prompts)
+            if cache_save_path and not self.config.dry_run:
+                cache.save(cache_save_path)
+                saved_cache_path = cache_save_path
+                self.final_cache_path = cache_save_path
+                self._notify(
+                    f"Saved baseline cache to {cache_save_path}",
+                    component="baseline",
+                )
+
+        test_metrics = None
+        if test_prompts is not None and test_labels is not None:
+            test_ds = PromptDataset(
+                test_prompts, test_labels,
+                self.tokenizer, self.config.max_length
+            )
+            test_loader = DataLoader(
+                test_ds,
+                batch_size=self.config.batch_size * 2,
+                shuffle=False
+            )
+            test_metrics = evaluate(model, test_loader, self.device)
+            self._notify(
+                f"Baseline test metrics: F1={test_metrics['f1']:.4f} | "
+                f"Precision={test_metrics['precision']:.4f} | "
+                f"Recall={test_metrics['recall']:.4f}",
+                component="baseline",
+            )
+
+        return {
+            "model": model,
+            "checkpoint_dir": saved_checkpoint,
+            "cache": cache,
+            "cache_save_path": saved_cache_path,
+            "best_val_f1": best_f1,
+            "train_time_sec": round(train_time, 1),
+            "test_metrics": test_metrics,
+            "dry_run": self.config.dry_run,
+        }
 
     @torch.no_grad()
     def _find_fooling_variants(self, detector: TwoStageDetector, seed_prompts: list) -> tuple[list, dict]:
@@ -523,6 +795,36 @@ class AdversarialTrainer:
         cache.build(jailbreak_prompts)
 
         seed_prompts = jailbreak_prompts.copy()  # mutator draws from these
+        start_round = 1
+
+        resume_state = self._load_resume_state()
+        if resume_state:
+            start_round = int(resume_state.get("next_round", 1))
+            all_texts = list(resume_state.get("all_texts", all_texts))
+            all_labels = list(resume_state.get("all_labels", all_labels))
+            seed_prompts = list(resume_state.get("seed_prompts", seed_prompts))
+            self.history = list(resume_state.get("history", []))
+            self.current_model_source = resume_state.get("current_model_source") or self.current_model_source
+            self.latest_checkpoint_path = resume_state.get("latest_checkpoint_path")
+            self.final_checkpoint_path = resume_state.get("final_checkpoint_path")
+            self.final_cache_path = resume_state.get("final_cache_path")
+
+            latest_cache_path = resume_state.get("latest_cache_path")
+            if latest_cache_path:
+                cache = load_cache(latest_cache_path)
+
+            if resume_state.get("completed") and start_round > self.config.num_rounds:
+                self._notify(
+                    "Adversarial training was already completed earlier. Loading the saved final checkpoint.",
+                    component="resume",
+                )
+                model = self._build_model()
+                return model, cache
+
+            self._notify(
+                f"Resuming adversarial training from round {start_round}/{self.config.num_rounds}.",
+                component="resume",
+            )
 
         print("\n" + "=" * 60)
         print(f"ADVERSARIAL TRAINING — {self.config.num_rounds} rounds")
@@ -534,7 +836,7 @@ class AdversarialTrainer:
 
         model = None
 
-        for round_num in range(1, self.config.num_rounds + 1):
+        for round_num in range(start_round, self.config.num_rounds + 1):
             print(f"\n{'─'*60}")
             print(f"ROUND {round_num}/{self.config.num_rounds}")
             print(f"  Dataset size: {len(all_texts)} "
@@ -565,10 +867,7 @@ class AdversarialTrainer:
                     component="checkpoint",
                 )
             else:
-                ckpt_path = f"{self.config.output_dir}/round_{round_num}"
-                model.save_pretrained(ckpt_path)
-                self.tokenizer.save_pretrained(ckpt_path)
-                self._notify(f"Saved checkpoint to {ckpt_path}", component="checkpoint")
+                ckpt_path = self._save_checkpoint(model, f"{self.config.output_dir}/round_{round_num}")
                 self.current_model_source = ckpt_path
                 self._notify(
                     f"Next round will continue from: {self.current_model_source}",
@@ -663,6 +962,20 @@ class AdversarialTrainer:
                 component="round",
             )
 
+            if not self.config.dry_run:
+                round_cache_path = self._round_cache_path(round_num)
+                cache.save(round_cache_path)
+                self.final_cache_path = round_cache_path
+                self._save_resume_state(
+                    next_round=round_num + 1,
+                    all_texts=all_texts,
+                    all_labels=all_labels,
+                    seed_prompts=seed_prompts,
+                    cache=cache,
+                    latest_cache_path=round_cache_path,
+                    completed=False,
+                )
+
         # ── Final save ────────────────────────────────────────────────────
         print("\n" + "=" * 60)
         print("TRAINING COMPLETE")
@@ -672,11 +985,22 @@ class AdversarialTrainer:
         else:
             # Save cache
             cache.save(self.config.cache_save_path)
+            self.final_cache_path = self.config.cache_save_path
 
             # Save history
             with open(self.config.history_save_path, 'w') as f:
                 json.dump(self.history, f, indent=2)
             print(f"[trainer] History saved to {self.config.history_save_path}")
+            self.final_checkpoint_path = self.latest_checkpoint_path
+            self._save_resume_state(
+                next_round=self.config.num_rounds + 1,
+                all_texts=all_texts,
+                all_labels=all_labels,
+                seed_prompts=seed_prompts,
+                cache=cache,
+                latest_cache_path=self.final_cache_path,
+                completed=True,
+            )
 
         # Print summary table
         print("\n--- Round Summary ---")
