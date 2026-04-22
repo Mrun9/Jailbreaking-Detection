@@ -173,6 +173,21 @@ def find_project_model_path() -> Optional[str]:
     return None
 
 
+def _default_torch_device() -> str:
+    """Prefer CUDA, then Apple MPS, then CPU for inference workloads."""
+    if not TRANSFORMERS_OK:
+        return "cpu"
+
+    if torch.cuda.is_available():
+        return "cuda"
+
+    mps_backend = getattr(torch.backends, "mps", None)
+    if mps_backend is not None and mps_backend.is_available():
+        return "mps"
+
+    return "cpu"
+
+
 class TransformerEmbedder:
     """
     Small transformer encoder for semantic similarity.
@@ -192,7 +207,7 @@ class TransformerEmbedder:
             raise RuntimeError("transformers and torch are required for semantic cache embeddings.")
 
         resolved_path = _resolve_model_path(model_name_or_path)
-        self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = device or _default_torch_device()
         self.batch_size = batch_size
         self.max_length = max_length
         self.tokenizer = AutoTokenizer.from_pretrained(resolved_path)
@@ -545,7 +560,7 @@ class NeuralClassifier:
 
         # Auto-detect device
         if device is None:
-            self.device = "cuda" if torch.cuda.is_available() else "cpu"
+            self.device = _default_torch_device()
         else:
             self.device = device
 
@@ -576,7 +591,7 @@ class NeuralClassifier:
 
         classifier = cls.__new__(cls)
         classifier.confidence_threshold = confidence_threshold
-        classifier.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+        classifier.device = device or _default_torch_device()
         classifier.tokenizer = tokenizer
         classifier.model = model.to(classifier.device)
         classifier.model.eval()

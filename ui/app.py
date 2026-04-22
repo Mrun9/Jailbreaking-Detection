@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import csv
 import json
+import os
 import sys
 import threading
 from pathlib import Path
@@ -23,6 +24,9 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 SRC_DIR = REPO_ROOT / "src"
 DATASET_CSV = REPO_ROOT / "results" / "collected_prompts.csv"
 DELIVERABLE3_SUMMARY = REPO_ROOT / "results" / "deliverable3" / "deliverable3_summary.json"
+UI_CACHE_DIR = REPO_ROOT / "results" / "ui_cache"
+UI_CACHE_PATH = UI_CACHE_DIR / "seeded_jailbreak_cache"
+UI_CACHE_META = UI_CACHE_DIR / "seeded_jailbreak_cache.source.json"
 
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
@@ -76,6 +80,59 @@ def _load_deliverable3_summary() -> dict:
         return json.load(handle)
 
 
+def _dataset_signature() -> Optional[dict]:
+    if not DATASET_CSV.exists():
+        return None
+
+    stat = DATASET_CSV.stat()
+    return {
+        "path": str(DATASET_CSV.relative_to(REPO_ROOT)),
+        "size": stat.st_size,
+        "mtime_ns": stat.st_mtime_ns,
+    }
+
+
+def _seed_cache_artifacts_exist() -> bool:
+    cache_prefix = str(UI_CACHE_PATH)
+    return UI_CACHE_PATH.exists() or (
+        Path(cache_prefix + ".faiss").exists()
+        and Path(cache_prefix + ".meta.pkl").exists()
+    )
+
+
+def _load_seed_cache_metadata() -> dict:
+    if not UI_CACHE_META.exists():
+        return {}
+
+    try:
+        with UI_CACHE_META.open(encoding="utf-8") as handle:
+            data = json.load(handle)
+            return data if isinstance(data, dict) else {}
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"[ui] Could not read cache metadata: {exc}")
+        return {}
+
+
+def _seed_cache_is_fresh() -> bool:
+    if not _seed_cache_artifacts_exist():
+        return False
+
+    metadata = _load_seed_cache_metadata()
+    signature = _dataset_signature()
+    return metadata.get("dataset_signature") == signature
+
+
+def _save_seed_cache_metadata(seed_prompt_count: int) -> None:
+    UI_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "dataset_signature": _dataset_signature(),
+        "seed_prompt_count": seed_prompt_count,
+    }
+    with UI_CACHE_META.open("w", encoding="utf-8") as handle:
+        json.dump(payload, handle, indent=2)
+        handle.write("\n")
+
+
 SUMMARY = _load_deliverable3_summary()
 
 MODE_CONFIG = {
@@ -113,16 +170,30 @@ class DetectorService:
 
     def _initialize(self) -> bool:
         try:
+            cached_seed_ready = _seed_cache_is_fresh()
             detector = load_project_detector(
+                cache_path=str(UI_CACHE_PATH) if cached_seed_ready else None,
                 model_threshold=MODE_CONFIG["balanced"]["threshold"],
                 auto_update_cache=False,
             )
-            jailbreak_prompts = _load_seed_jailbreak_prompts()
-            self.seed_prompt_count = len(jailbreak_prompts)
-            if jailbreak_prompts:
-                detector.seed_cache(jailbreak_prompts)
+            if cached_seed_ready:
+                metadata = _load_seed_cache_metadata()
+                self.seed_prompt_count = int(metadata.get("seed_prompt_count", 0))
+                print(f"[ui] Reused saved detector cache from {UI_CACHE_PATH}.")
             else:
-                print("[ui] Detector started without a seeded cache.")
+                jailbreak_prompts = _load_seed_jailbreak_prompts()
+                self.seed_prompt_count = len(jailbreak_prompts)
+                if jailbreak_prompts:
+                    detector.seed_cache(jailbreak_prompts)
+                    try:
+                        UI_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+                        detector.save_cache(str(UI_CACHE_PATH))
+                        _save_seed_cache_metadata(self.seed_prompt_count)
+                        print(f"[ui] Saved seeded detector cache to {UI_CACHE_PATH}.")
+                    except Exception as exc:
+                        print(f"[ui] Could not persist seeded cache: {exc}")
+                else:
+                    print("[ui] Detector started without a seeded cache.")
 
             with self._init_lock:
                 self.detector = detector
@@ -867,4 +938,5 @@ def detect():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    debug_enabled = os.getenv("FLASK_DEBUG", "").strip().lower() in {"1", "true", "yes", "on"}
+    app.run(debug=debug_enabled, port=5000)

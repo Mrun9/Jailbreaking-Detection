@@ -1,0 +1,8 @@
+{
+  "dataset_signature": {
+    "path": "results/collected_prompts.csv",
+    "size": 34492765,
+    "mtime_ns": 1776052297824880376
+  },
+  "seed_prompt_count": 10190
+}

@@ -2,12 +2,26 @@
 
 This project detects jailbreak and prompt-injection attempts before they reach a downstream LLM. The current Deliverable 3 system combines:
 
-- a processed prompt dataset in [results/collected_prompts.csv](/Users/mrunal/Documents/Projects/ADL/Jailbreak Detection/results/collected_prompts.csv)
+- a processed prompt dataset in [results/collected_prompts.csv](results/collected_prompts.csv)
 - a fine-tuned DistilBERT classifier with saved experiment checkpoints
-- a two-stage detector in [src/detector.py](/Users/mrunal/Documents/Projects/ADL/Jailbreak Detection/src/detector.py)
-- adversarial mutation and training utilities in [src/mutator.py](/Users/mrunal/Documents/Projects/ADL/Jailbreak Detection/src/mutator.py) and [src/train_loop.py](/Users/mrunal/Documents/Projects/ADL/Jailbreak Detection/src/train_loop.py)
-- a refined Flask demo UI in [ui/app.py](/Users/mrunal/Documents/Projects/ADL/Jailbreak Detection/ui/app.py)
-- Deliverable 3 analysis artifacts in [results/deliverable3](/Users/mrunal/Documents/Projects/ADL/Jailbreak Detection/results/deliverable3)
+- a two-stage detector in [src/detector.py](src/detector.py)
+- adversarial mutation and training utilities in [src/mutator.py](src/mutator.py) and [src/train_loop.py](src/train_loop.py)
+- a refined Flask demo UI in [ui/app.py](ui/app.py)
+- Deliverable 3 analysis artifacts in [results/deliverable3](results/deliverable3)
+
+## Main Page Overview
+
+### System Architecture
+
+The project uses an offline training pipeline and a runtime detection pipeline. During inference, prompts are checked against the cache first and then passed to the neural classifier if needed.
+
+![System architecture](docs/system_architecture.png)
+
+### Interface Preview
+
+The refined Deliverable 3 UI explains the chosen operating mode, shows whether the answer came from the cache or the model, and presents the result in a more reviewer-friendly way.
+
+![Cache-hit interface example](docs/ui_cache_hit_example.png)
 
 ## Deliverable 3 Highlights
 
@@ -97,11 +111,11 @@ python3 src/helper/deliverable3_analysis.py
 
 This writes:
 
-- [results/deliverable3/deliverable3_summary.json](/Users/mrunal/Documents/Projects/ADL/Jailbreak Detection/results/deliverable3/deliverable3_summary.json)
-- [results/deliverable3/operating_modes.csv](/Users/mrunal/Documents/Projects/ADL/Jailbreak Detection/results/deliverable3/operating_modes.csv)
-- [results/deliverable3/threshold_sweep.csv](/Users/mrunal/Documents/Projects/ADL/Jailbreak Detection/results/deliverable3/threshold_sweep.csv)
-- [results/deliverable3/source_breakdown.csv](/Users/mrunal/Documents/Projects/ADL/Jailbreak Detection/results/deliverable3/source_breakdown.csv)
-- [results/deliverable3/category_breakdown.csv](/Users/mrunal/Documents/Projects/ADL/Jailbreak Detection/results/deliverable3/category_breakdown.csv)
+- [results/deliverable3/deliverable3_summary.json](results/deliverable3/deliverable3_summary.json)
+- [results/deliverable3/operating_modes.csv](results/deliverable3/operating_modes.csv)
+- [results/deliverable3/threshold_sweep.csv](results/deliverable3/threshold_sweep.csv)
+- [results/deliverable3/source_breakdown.csv](results/deliverable3/source_breakdown.csv)
+- [results/deliverable3/category_breakdown.csv](results/deliverable3/category_breakdown.csv)
 
 ### 3. Generate the Deliverable 3 report
 
@@ -111,8 +125,8 @@ python3 reports/generate_deliverable3_report.py
 
 Outputs:
 
-- [reports/deliverable3_report.md](/Users/mrunal/Documents/Projects/ADL/Jailbreak Detection/reports/deliverable3_report.md)
-- [reports/deliverable3_report.pdf](/Users/mrunal/Documents/Projects/ADL/Jailbreak Detection/reports/deliverable3_report.pdf)
+- [reports/deliverable3_report.md](reports/deliverable3_report.md)
+- [reports/deliverable3_report.pdf](reports/deliverable3_report.pdf)
 
 ### 4. Launch the refined interface
 
@@ -151,10 +165,10 @@ Important interpretation:
 
 Relevant Deliverable 3 artifacts:
 
-- Refined interface: [ui/app.py](/Users/mrunal/Documents/Projects/ADL/Jailbreak Detection/ui/app.py)
-- Extended evaluation notebook: [notebooks/deliverable3_extended_evaluation.ipynb](/Users/mrunal/Documents/Projects/ADL/Jailbreak Detection/notebooks/deliverable3_extended_evaluation.ipynb)
-- Report PDF: [reports/deliverable3_report.pdf](/Users/mrunal/Documents/Projects/ADL/Jailbreak Detection/reports/deliverable3_report.pdf)
-- Existing screenshots and demo captures: [results](/Users/mrunal/Documents/Projects/ADL/Jailbreak Detection/results)
+- Refined interface: [ui/app.py](ui/app.py)
+- Extended evaluation notebook: [notebooks/deliverable3_extended_evaluation.ipynb](notebooks/deliverable3_extended_evaluation.ipynb)
+- Report PDF: [reports/deliverable3_report.pdf](reports/deliverable3_report.pdf)
+- Existing screenshots and demo captures: [results](results)
 
 ## Known Issues and Warnings
 
