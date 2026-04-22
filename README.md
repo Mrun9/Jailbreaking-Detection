@@ -69,13 +69,6 @@ Jailbreak Detection/
 │   ├── visualize_distilbert_experiment_results.ipynb
 │   ├── visualize_distilbert_training_old.ipynb
 │   └── model training/distilbert_detector_train_old.py
-├── reports/
-│   ├── generate_deliverable3_report.py
-│   ├── deliverable3_report.md
-│   ├── deliverable3_report.pdf
-│   ├── generate_preliminary_report.py
-│   ├── preliminary_report.md
-│   └── preliminary_report.pdf
 ├── results/
 │   ├── collected_prompts.csv
 │   ├── deliverable3/
